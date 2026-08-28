@@ -1,5 +1,17 @@
 # ReceiptFlow
 
+[![Cloudflare Pages](https://img.shields.io/badge/Frontend-Cloudflare%20Pages-f38020?style=for-the-badge&logo=cloudflare&logoColor=white)](https://pages.cloudflare.com/)
+[![Cloudflare Workers](https://img.shields.io/badge/Backend-Cloudflare%20Workers-f38020?style=for-the-badge&logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vite.dev/)
+[![Cloudflare D1](https://img.shields.io/badge/Database-Cloudflare%20D1-f38020?style=for-the-badge&logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/d1/)
+[![Cloudflare R2](https://img.shields.io/badge/Storage-Cloudflare%20R2-f38020?style=for-the-badge&logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/r2/)
+[![OpenRouter](https://img.shields.io/badge/AI-OpenRouter-111827?style=for-the-badge)](https://openrouter.ai/)
+[![Zod](https://img.shields.io/badge/Validation-Zod-3E67B1?style=for-the-badge&logo=zod&logoColor=white)](https://zod.dev/)
+[![Recharts](https://img.shields.io/badge/Charts-Recharts-22B5BF?style=for-the-badge)](https://recharts.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
+
 AI-powered receipt and invoice extraction with a privacy-first dashboard.
 
 ReceiptFlow turns temporary receipt images into validated structured financial data. Original images are kept only for processing and are never shown in the dashboard.
