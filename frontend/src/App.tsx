@@ -68,6 +68,9 @@ function App() {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [paymentFilter, setPaymentFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
   const [dragging, setDragging] = useState(false);
   const [token, setToken] = useState(() => localStorage.getItem("receiptflow-session"));
   const [accountLabel, setAccountLabel] = useState(() => localStorage.getItem("receiptflow-account-label") || "Account");
@@ -123,13 +126,18 @@ function App() {
     setMessage("Receipt deleted.");
   }
 
-  const filtered = records.filter((r) =>
-    [r.merchant.name, r.receipt.invoice_number, r.metadata.notes, ...r.items.map((i) => i.name)]
-      .join(" ").toLowerCase().includes(search.toLowerCase())
-  );
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const filterCategories = Array.from(new Set(records.flatMap((r) => r.items.map((i) => i.category)))).filter(Boolean).sort();
+  const paymentMethods = Array.from(new Set(records.map((r) => r.payment.method))).filter(Boolean).sort();
+  const filtered = records.filter((r) => {
+    const textMatch = [r.merchant.name, r.receipt.invoice_number, r.metadata.notes, ...r.items.map((i) => i.name)].join(" ").toLowerCase().includes(search.toLowerCase());
+    const categoryMatch = categoryFilter === "all" || r.items.some((i) => i.category === categoryFilter);
+    const paymentMatch = paymentFilter === "all" || r.payment.method === paymentFilter;
+    const dateMatch = dateFilter === "all" || (dateFilter === "month" ? r.receipt.shopping_date.startsWith(currentMonth) : new Date(r.receipt.shopping_date) >= new Date(Date.now() - 30 * 86400000));
+    return textMatch && categoryMatch && paymentMatch && dateMatch;
+  });
 
   const total = records.reduce((sum, r) => sum + r.amounts.total, 0);
-  const currentMonth = new Date().toISOString().slice(0, 7);
   const monthTotal = records.filter((r) => r.receipt.shopping_date.startsWith(currentMonth)).reduce((sum, r) => sum + r.amounts.total, 0);
 
   const categories = Object.entries(records.flatMap((r) => r.items).reduce<Record<string, number>>((a, i) => {
@@ -178,7 +186,7 @@ function App() {
       </section>
 
       <section className="panel">
-        <div className="section-head"><div><h2>Receipts</h2><span>{filtered.length} records</span></div><div className="search"><Search size={17}/><input placeholder="Search receipts…" value={search} onChange={(e)=>setSearch(e.target.value)}/></div></div>
+        <div className="section-head"><div><h2>Receipts</h2><span>{filtered.length} records</span></div><div className="search"><Search size={17}/><input placeholder="Search receipts…" value={search} onChange={(e)=>setSearch(e.target.value)}/></div></div><div className="receipt-filters"><select value={categoryFilter} onChange={(e)=>setCategoryFilter(e.target.value)}><option value="all">All categories</option>{filterCategories.map(c=><option key={c} value={c}>{c}</option>)}</select><select value={paymentFilter} onChange={(e)=>setPaymentFilter(e.target.value)}><option value="all">All payment methods</option>{paymentMethods.map(p=><option key={p} value={p}>{p}</option>)}</select><select value={dateFilter} onChange={(e)=>setDateFilter(e.target.value)}><option value="all">Any date</option><option value="month">This month</option><option value="30">Last 30 days</option></select>{(search||categoryFilter!=="all"||paymentFilter!=="all"||dateFilter!=="all")&&<button className="filter-clear" onClick={()=>{setSearch("");setCategoryFilter("all");setPaymentFilter("all");setDateFilter("all");}}>Clear</button>}</div>
         <div className="receipt-list">
           {filtered.length === 0 ? <div className="empty"><FileText size={32}/><strong>No receipts yet</strong><span>Upload your first receipt to start building your dashboard.</span></div> : filtered.map(r => <button className="receipt-row" key={r.id} onClick={()=>setSelected(r)}>
             <div className="receipt-icon"><Receipt size={19}/></div><div className="receipt-main"><strong>{r.merchant.name}</strong><span>Shopping: {displayDate(r.receipt.shopping_date)} · Uploaded: {displayDateTime(r.uploaded_at)}</span><small>{r.metadata.notes}</small></div><strong className="amount">{money(r.amounts.total, r.receipt.currency)}</strong>
