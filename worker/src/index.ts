@@ -54,7 +54,7 @@ function jsonResponse(data: unknown, status = 200) {
     "content-type": "application/json",
     "access-control-allow-origin": "*",
     "access-control-allow-headers": "Content-Type, Authorization",
-    "access-control-allow-methods": "GET,POST,DELETE,OPTIONS"
+    "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS"
   }});
 }
 
@@ -298,8 +298,18 @@ export default {
         const customer = { ...JSON.parse(current.customer_json), ...pick(body.customer, ["name","id","address"]) };
         const payment = { ...JSON.parse(current.payment_json), ...pick(body.payment, ["method","status"]) };
         const metadata = { ...JSON.parse(current.metadata_json), ...pick(body.metadata, ["receipt_owner","tags","notes"]) };
+        const incomingItems = Array.isArray(body.items) ? body.items : null;
         await env.DB.prepare("UPDATE receipts SET merchant_json=?, receipt_json=?, customer_json=?, payment_json=?, metadata_json=? WHERE id=? AND user_id=?")
-          .bind(JSON.stringify(merchant),JSON.stringify(receipt),JSON.stringify(customer),JSON.stringify(payment),JSON.stringify(metadata),id,userId).run();
+          .bind(JSON.stringify(merchant),JSON.stringify(receipt),JSON.stringify(current.customer_json ? customer : customer),JSON.stringify(payment),JSON.stringify(metadata),id,userId).run();
+        if (incomingItems) {
+          const existingItems = await env.DB.prepare("SELECT id FROM receipt_items WHERE receipt_id = ?").bind(id).all<{id:string}>();
+          const allowed = new Set(existingItems.results.map((item) => item.id));
+          for (const item of incomingItems) {
+            if (!item || !allowed.has(item.id) || typeof item.category !== "string") continue;
+            await env.DB.prepare("UPDATE receipt_items SET category = ? WHERE id = ? AND receipt_id = ?")
+              .bind(item.category, item.id, id).run();
+          }
+        }
         return jsonResponse((await listReceipts(env,userId)).find((r) => r.id === id));
       }
 
