@@ -16,6 +16,8 @@ AI-powered receipt and invoice extraction with a privacy-first dashboard.
 
 ReceiptFlow turns temporary receipt images into validated structured financial data. Original images are kept only for processing and are never shown in the dashboard.
 
+**ReceiptFlow © 2026 · Made by [ItzByteGlitch](https://github.com/itzbyteglitch)**
+
 ## Architecture
 
 - **Frontend:** React + Vite + TypeScript, deployable to Cloudflare Pages
