@@ -2,7 +2,6 @@ import { z } from "zod";
 
 interface Env {
   DB: D1Database;
-  RECEIPTS: R2Bucket;
   OPENROUTER_API_KEY: string;
   OPENROUTER_MODEL?: string;
 }
@@ -190,10 +189,7 @@ export default {
           const data = await processReceipt(file, env);
           const record = await saveReceipt(env, userId, data, uploadedAt);
           return jsonResponse(record, 201);
-        } finally {
-          // Delete immediately after AI processing; the R2 lifecycle policy is the safety net.
-          await env.RECEIPTS.delete(key);
-        }
+
       }
 
       const match = url.pathname.match(/^\/api\/receipts\/([^/]+)$/);
@@ -209,16 +205,6 @@ export default {
     } catch (error) {
       console.error(error);
       return jsonResponse({ error: error instanceof Error ? error.message : "Unexpected server error" }, 500);
-    }
-  },
-
-  async scheduled(_event: ScheduledEvent, env: Env) {
-    // R2 lifecycle is the authoritative 24h retention mechanism. This scheduled
-    // handler also cleans up any temporary objects left behind by failed requests.
-    const listed = await env.RECEIPTS.list({ prefix: "temporary-receipts/" });
-    const cutoff = Date.now() - 23 * 60 * 60 * 1000;
-    for (const object of listed.objects) {
-      if (object.uploaded.getTime() < cutoff) await env.RECEIPTS.delete(object.key);
     }
   }
 };
