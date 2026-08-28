@@ -198,7 +198,7 @@ function Details({record,onBack,onDelete,onSave}:{record:ReceiptRecord;onBack:()
   async function save(){
     setSaving(true);
     try{
-      const response=await fetch(API_URL+"/api/receipts/"+record.id,{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:"Bearer "+(localStorage.getItem("receiptflow-session")||"")},body:JSON.stringify(form)});
+      const response=await fetch(API_URL+"/api/receipts/"+record.id,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+(localStorage.getItem("receiptflow-session")||"")},body:JSON.stringify(form)});
       const data=await response.json();
       if(!response.ok) throw new Error(data.error||"Could not save changes.");
       onSave(data);setEditing(false);
