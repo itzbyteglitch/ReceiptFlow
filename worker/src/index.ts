@@ -291,7 +291,7 @@ export default {
       }
 
       const match = url.pathname.match(/^\/api\/receipts\/([^/]+)$/);
-      if (match && request.method === "PATCH") {
+      if (match && (request.method === "PATCH" || request.method === "POST")) {
         const id = match[1];
         const userId = await authenticate(request, env);
         if (!userId) return jsonResponse({ error: "Authentication required" }, 401);
