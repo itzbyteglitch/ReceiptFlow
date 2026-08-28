@@ -197,13 +197,32 @@ function App() {
   );
 }
 
-function Details({record,onBack,onDelete}:{record:ReceiptRecord;onBack:()=>void;onDelete:()=>void}) {
-  return <main className="app-shell"><header className="topbar"><button className="back" onClick={onBack}><ArrowLeft size={18}/> Dashboard</button><button className="danger" onClick={onDelete}><Trash2 size={17}/> Delete receipt</button></header>
+function Details({record,onBack,onDelete,onSave}:{record:ReceiptRecord;onBack:()=>void;onDelete:()=>void;onSave:(updated:ReceiptRecord)=>void}) {
+  const [editing,setEditing]=useState(false);
+  const [saving,setSaving]=useState(false);
+  const [form,setForm]=useState({merchant:{...record.merchant},receipt:{...record.receipt},customer:{...record.customer},payment:{...record.payment},metadata:{...record.metadata}});
+  function set(path:string,value:string){ setForm((f:any)=>{const [section,key]=path.split(".");return {...f,[section]:{...f[section],[key]:value}};}); }
+  async function save(){
+    setSaving(true);
+    try{
+      const response=await fetch(API_URL+"/api/receipts/"+record.id,{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:"Bearer "+(localStorage.getItem("receiptflow-session")||"")},body:JSON.stringify(form)});
+      const data=await response.json();
+      if(!response.ok) throw new Error(data.error||"Could not save changes.");
+      onSave(data);setEditing(false);
+    }catch(e){alert(e instanceof Error?e.message:"Could not save changes.");}finally{setSaving(false);}
+  }
+  const field=(label:string,path:string)=>{const [section,key]=path.split(".");return <label className="edit-field"><span>{label}</span><input value={(form as any)[section][key]} onChange={e=>set(path,e.target.value)}/></label>;};
+  return <main className="app-shell"><header className="topbar"><button className="back" onClick={onBack}><ArrowLeft size={18}/> Dashboard</button><div className="detail-actions"><button className="secondary-button" onClick={()=>setEditing(true)}>Edit details</button><button className="danger" onClick={onDelete}><Trash2 size={17}/> Delete receipt</button></div></header>
     <section className="detail-hero"><p className="eyebrow">{record.receipt.type.replaceAll("_"," ").toUpperCase()}</p><h1>{record.merchant.name}</h1><p>{record.metadata.notes}</p><div className="detail-meta"><span><CalendarDays size={16}/> Shopping: {displayDate(record.receipt.shopping_date)}</span><span><Upload size={16}/> Uploaded: {displayDateTime(record.uploaded_at)}</span></div></section>
-    {record.metadata.warnings.length > 0 && <div className="warning"><AlertTriangle size={18}/><div><strong>Extraction warnings</strong>{record.metadata.warnings.map(w=><span key={w}>{w}</span>)}</div></div>}
-    <section className="grid-two"><Panel title="Receipt information"><Info label="Invoice / receipt no." value={record.receipt.invoice_number}/><Info label="Customer" value={record.customer.name}/><Info label="Location" value={[record.merchant.city,record.merchant.state].filter(x=>x!=="unspecified").join(", ") || "unspecified"}/><Info label="Payment" value={record.payment.method}/><Info label="Status" value={record.payment.status}/><Info label="Confidence" value={`${Math.round(record.metadata.confidence*100)}%`}/></Panel>
+    {record.metadata.warnings.length>0&&<div className="warning"><AlertTriangle size={18}/><div><strong>Extraction warnings</strong>{record.metadata.warnings.map(w=><span key={w}>{w}</span>)}</div></div>}
+    <section className="grid-two"><Panel title="Receipt information"><Info label="Invoice / receipt no." value={record.receipt.invoice_number}/><Info label="Customer" value={record.customer.name}/><Info label="Location" value={[record.merchant.city,record.merchant.state].filter(x=>x!=="unspecified").join(", ")||"unspecified"}/><Info label="Payment" value={record.payment.method}/><Info label="Status" value={record.payment.status}/><Info label="Confidence" value={Math.round(record.metadata.confidence*100)+"%"}/></Panel>
       <Panel title="Amounts"><Info label="Subtotal" value={money(record.amounts.subtotal,record.receipt.currency)}/><Info label="Discount" value={money(record.amounts.discount,record.receipt.currency)}/><Info label="Tax" value={money(record.amounts.tax,record.receipt.currency)}/><Info label="Paid" value={money(record.amounts.paid,record.receipt.currency)}/><Info label="Pending" value={money(record.amounts.pending,record.receipt.currency)}/><Info label="Total" value={money(record.amounts.total,record.receipt.currency)} strong/></Panel></section>
     <section className="panel"><div className="section-head"><div><h2>Items</h2><span>{record.items.length} items</span></div></div><div className="items-table"><div className="item-head"><span>Item</span><span>Category</span><span>Qty</span><span>Total</span></div>{record.items.map(i=><div className="item-row" key={i.id}><span><strong>{i.name}</strong><small>{i.description}</small></span><span>{i.category}</span><span>{i.quantity} {i.unit}</span><strong>{money(i.total_price,record.receipt.currency)}</strong></div>)}</div></section>
+    {editing&&<div className="edit-modal-backdrop"><section className="edit-modal"><div className="upload-modal-head"><div><p className="eyebrow">EDIT RECEIPT</p><h2>Receipt details</h2><small>Prices, totals, taxes and item amounts are locked.</small></div><button className="icon-button" onClick={()=>setEditing(false)}><X size={18}/></button></div><div className="edit-grid">
+      {field("Vendor / merchant","merchant.name")}{field("Address","merchant.address")}{field("City","merchant.city")}{field("State","merchant.state")}{field("Country","merchant.country")}{field("GSTIN","merchant.gstin")}{field("Phone","merchant.phone")}
+      {field("Receipt type","receipt.type")}{field("Invoice / receipt no.","receipt.invoice_number")}{field("Shopping date","receipt.shopping_date")}{field("Shopping time","receipt.shopping_time")}{field("Customer name","customer.name")}{field("Customer ID","customer.id")}{field("Customer address","customer.address")}{field("Payment method","payment.method")}{field("Payment status","payment.status")}
+      <label className="edit-field edit-wide"><span>Receipt owner</span><input value={form.metadata.receipt_owner} onChange={e=>set("metadata.receipt_owner",e.target.value)}/></label><label className="edit-field edit-wide"><span>Notes</span><textarea value={form.metadata.notes} onChange={e=>set("metadata.notes",e.target.value)}/></label>
+    </div><div className="edit-footer"><button className="upload-cancel" onClick={()=>setEditing(false)}>Cancel</button><button className="login-button save-button" onClick={save} disabled={saving}>{saving?"Saving…":"Save changes"}</button></div></section></div>}
     <p className="privacy-note"><CheckCircle2 size={16}/> ReceiptFlow stores extracted receipt data only; original images are not displayed or stored.</p>
   </main>
 }
