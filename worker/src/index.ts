@@ -89,7 +89,7 @@ async function processReceipt(file: File, env: Env): Promise<Receipt> {
 
   const base64 = bytesToBase64(bytes);
   const imageUrl = `data:${file.type};base64,${base64}`;
-  const model = env.OPENROUTER_MODEL || "openrouter/free";
+  const model = env.OPENROUTER_MODEL || "dots-studio/dots-3-note-preview:free";
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
@@ -101,6 +101,9 @@ async function processReceipt(file: File, env: Env): Promise<Receipt> {
     },
     body: JSON.stringify({
       model,
+      temperature: 0,
+      top_p: 1,
+      seed: 42,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: [
