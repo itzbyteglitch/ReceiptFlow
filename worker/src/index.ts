@@ -86,7 +86,7 @@ async function verifySession(token: string, env: Env): Promise<string | null> {
   try {
     const payload = JSON.parse(new TextDecoder().decode(fromBase64Url(payloadPart))) as { userId?: string; codeHash?: string; exp?: number };
     if (!payload.userId || !payload.codeHash || !payload.exp || payload.exp < Math.floor(Date.now() / 1000)) return null;
-    const code = await env.DB.prepare("SELECT id FROM access_codes WHERE code_hash = ? AND active = 1").bind(payload.codeHash).first<{id:string}>();
+    const code = await env.DB.prepare("SELECT id, label FROM access_codes WHERE code_hash = ? AND active = 1").bind(payload.codeHash).first<{id:string;label:string}>();
     if (!code) return null;
     const expected = await signSession(payloadPart, payload.codeHash);
     if (expected !== signaturePart) return null;
@@ -261,7 +261,7 @@ export default {
           exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30
         })));
         const signature = await signSession(payload, codeHash);
-        return jsonResponse({ token: payload + "." + signature });
+        return jsonResponse({ token: payload + "." + signature, label: account.label });
       }
 
       if (url.pathname === "/api/receipts" && request.method === "GET") {
