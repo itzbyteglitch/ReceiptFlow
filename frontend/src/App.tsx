@@ -219,7 +219,16 @@ function Details({record,onBack,onDelete,onSave}:{record:ReceiptRecord;onBack:()
       <label className="edit-field edit-wide"><span>Receipt owner</span><input value={form.metadata.receipt_owner} onChange={e=>set("metadata.receipt_owner",e.target.value)}/></label><label className="edit-field edit-wide"><span>Notes</span><textarea value={form.metadata.notes} onChange={e=>set("metadata.notes",e.target.value)}/></label>
     </div><div className="edit-footer"><button className="upload-cancel" onClick={()=>setEditing(false)}>Cancel</button><button className="login-button save-button" onClick={save} disabled={saving}>{saving?"Saving…":"Save changes"}</button></div></section></div>}
     <p className="privacy-note"><CheckCircle2 size={16}/> ReceiptFlow stores extracted receipt data only; original images are not displayed or stored.</p>
+    <Footer />
   </main>
+}
+
+function Footer() {
+  return <footer className="site-footer">
+    <span>ReceiptFlow © 2026</span>
+    <span className="footer-separator">|</span>
+    <a href="https://github.com/itzbyteglitch" target="_blank" rel="noreferrer">Made by ItzByteGlitch</a>
+  </footer>;
 }
 
 function Login({apiUrl,onLogin}:{apiUrl:string;onLogin:(token:string,label:string)=>void}) {
