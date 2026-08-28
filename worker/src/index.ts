@@ -54,7 +54,7 @@ function jsonResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json", "access-control-allow-origin": "*", "access-control-allow-headers": "Content-Type", "access-control-allow-methods": "GET,POST,DELETE,OPTIONS" }});
 }
 
-function extractJson(text: string): unknown {
+function bytesToBase64(bytes: Uint8Array): string {\n  let binary = "";\n  const chunkSize = 0x8000;\n  for (let offset = 0; offset < bytes.length; offset += chunkSize) {\n    binary += String.fromCharCode(...bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length)));\n  }\n  return btoa(binary);\n}\n\nfunction extractJson(text: string): unknown {
   const cleaned = text.replace(/^\s*\`\`\`json\s*/i, "").replace(/\s*\`\`\`\s*$/i, "").trim();
   return JSON.parse(cleaned);
 }
@@ -64,7 +64,7 @@ async function processReceipt(file: File, env: Env): Promise<Receipt> {
   if (bytes.byteLength > 15 * 1024 * 1024) throw new Error("Receipt image must be 15 MB or smaller.");
   if (!file.type.startsWith("image/")) throw new Error("Only image receipts are supported.");
 
-  const base64 = btoa(String.fromCharCode(...bytes));
+  const base64 = bytesToBase64(bytes);
   const imageUrl = `data:${file.type};base64,${base64}`;
   const model = env.OPENROUTER_MODEL || "openrouter/free";
 
