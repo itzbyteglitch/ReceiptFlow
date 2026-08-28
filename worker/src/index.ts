@@ -167,7 +167,7 @@ export default {
     const url = new URL(request.url);
 
     try {
-      if (url.pathname === "/api/health") return jsonResponse({ ok: true, service: "receiptflow-api" });
+      if (url.pathname === "/api/health") return jsonResponse({ ok: true, service: "receiptflow" });
 
       if (url.pathname === "/api/receipts" && request.method === "GET") {
         const userId = url.searchParams.get("userId");
@@ -181,16 +181,10 @@ export default {
         const file = form.get("file");
         if (!userId || !(file instanceof File)) return jsonResponse({ error: "userId and image file are required" }, 400);
 
-        const key = `temporary-receipts/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,"_")}`;
-        await env.RECEIPTS.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
-
-        try {
-          const uploadedAt = new Date().toISOString();
-          const data = await processReceipt(file, env);
-          const record = await saveReceipt(env, userId, data, uploadedAt);
-          return jsonResponse(record, 201);
-
-      }
+        const uploadedAt = new Date().toISOString();
+        const data = await processReceipt(file, env);
+        const record = await saveReceipt(env, userId, data, uploadedAt);
+        return jsonResponse(record, 201);
 
       const match = url.pathname.match(/^\/api\/receipts\/([^/]+)$/);
       if (match && request.method === "DELETE") {
