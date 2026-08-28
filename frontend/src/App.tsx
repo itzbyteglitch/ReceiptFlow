@@ -74,6 +74,7 @@ function App() {
   const [dragging, setDragging] = useState(false);
   const [token, setToken] = useState(() => localStorage.getItem("receiptflow-session"));
   const [accountLabel, setAccountLabel] = useState(() => localStorage.getItem("receiptflow-account-label") || "Account");
+  const [showUploadOptions, setShowUploadOptions] = useState(false);
 
   function logout() {
     localStorage.removeItem("receiptflow-session");
@@ -167,9 +168,17 @@ function App() {
         <Stat icon={<FileText/>} label="Receipts" value={String(records.length)} />
       </section>
 
-      <section className={`dropzone ${dragging ? "dragging" : ""}`} onDragOver={(e) => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(e) => { e.preventDefault(); setDragging(false); const file=e.dataTransfer.files[0]; if(file) upload(file); }} onClick={() => document.getElementById("receipt-file-input")?.click()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") document.getElementById("receipt-file-input")?.click(); }}>
-        {uploading ? <><Loader2 className="spin" size={28}/><strong>Analyzing receipt…</strong><span>Extracting merchant, dates, items, taxes and payment details.</span></> : <><Upload size={28}/><strong>Drop a receipt here</strong><span>Tap to capture a photo or choose an image</span><input id="receipt-file-input" type="file" accept="image/*" capture="environment" hidden onChange={(e) => { const file=e.target.files?.[0]; if (file) upload(file); e.currentTarget.value=""; }} /></>}
+      <section className={`dropzone ${dragging ? "dragging" : ""}`} onDragOver={(e) => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(e) => { e.preventDefault(); setDragging(false); const file=e.dataTransfer.files[0]; if(file) upload(file); }} onClick={() => { if (window.matchMedia("(max-width: 700px)").matches) setShowUploadOptions(true); else document.getElementById("receipt-file-input")?.click(); }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { if (window.matchMedia("(max-width: 700px)").matches) setShowUploadOptions(true); else document.getElementById("receipt-file-input")?.click(); } }}>
+        {uploading ? <><Loader2 className="spin" size={28}/><strong>Analyzing receipt…</strong><span>Extracting merchant, dates, items, taxes and payment details.</span></> : <><Upload size={28}/><strong>Drop a receipt here</strong><span>Tap to take a photo or choose from your gallery</span><input id="receipt-file-input" type="file" accept="image/*" hidden onChange={(e) => { const file=e.target.files?.[0]; if (file) upload(file); e.currentTarget.value=""; }} /><input id="receipt-camera-input" type="file" accept="image/*" capture="environment" hidden onChange={(e) => { const file=e.target.files?.[0]; if (file) upload(file); e.currentTarget.value=""; }} /></>}
       </section>
+      {showUploadOptions && <div className="upload-modal-backdrop" onClick={() => setShowUploadOptions(false)}>
+        <div className="upload-modal" role="dialog" aria-modal="true" aria-labelledby="upload-options-title" onClick={(e) => e.stopPropagation()}>
+          <div className="upload-modal-head"><div><p className="eyebrow">UPLOAD RECEIPT</p><h2 id="upload-options-title">Choose a source</h2></div><button className="icon-button" onClick={() => setShowUploadOptions(false)} aria-label="Close"><X size={18}/></button></div>
+          <button className="upload-option" onClick={() => { setShowUploadOptions(false); document.getElementById("receipt-camera-input")?.click(); }}><span className="upload-option-icon">📷</span><span><strong>Take a photo</strong><small>Use your camera</small></span></button>
+          <button className="upload-option" onClick={() => { setShowUploadOptions(false); document.getElementById("receipt-file-input")?.click(); }}><span className="upload-option-icon">🖼️</span><span><strong>Choose from gallery</strong><small>Select an existing receipt image</small></span></button>
+          <button className="upload-cancel" onClick={() => setShowUploadOptions(false)}>Cancel</button>
+        </div>
+      </div>}
 
       <section className="grid-two">
         <Panel title="Merchant breakdown" icon={<BarChart3/>}><ResponsiveContainer width="100%" height={250}><BarChart data={merchants} layout="vertical"><CartesianGrid strokeDasharray="3 3" horizontal={false}/><XAxis type="number" hide/><YAxis type="category" dataKey="name" width={100}/><Tooltip formatter={(v) => money(Number(v))}/><Bar dataKey="value" radius={[0,6,6,0]} /></BarChart></ResponsiveContainer></Panel>
