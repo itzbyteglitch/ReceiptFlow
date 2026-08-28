@@ -4,6 +4,7 @@ interface Env {
   DB: D1Database;
   OPENROUTER_API_KEY: string;
   OPENROUTER_MODEL?: string;
+  RECEIPTFLOW_ACCESS_CODE: string;
 }
 
 const S = z.object({
@@ -50,7 +51,54 @@ Rules:
 `;
 
 function jsonResponse(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json", "access-control-allow-origin": "*", "access-control-allow-headers": "Content-Type", "access-control-allow-methods": "GET,POST,DELETE,OPTIONS" }});
+  return new Response(JSON.stringify(data), { status, headers: {
+    "content-type": "application/json",
+    "access-control-allow-origin": "*",
+    "access-control-allow-headers": "Content-Type, Authorization",
+    "access-control-allow-methods": "GET,POST,DELETE,OPTIONS"
+  }});
+}
+
+function base64Url(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\\+/g, "-").replace(/\\//g, "_").replace(/=+$/g, "");
+}
+
+function fromBase64Url(value: string): Uint8Array {
+  const padded = value.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - value.length % 4) % 4);
+  const binary = atob(padded);
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+}
+
+async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function signSession(payload: string, secret: string): Promise<string> {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
+  return base64Url(new Uint8Array(signature));
+}
+
+async function verifySession(token: string, secret: string): Promise<string | null> {
+  const [payloadPart, signaturePart] = token.split(".");
+  if (!payloadPart || !signaturePart) return null;
+  try {
+    const payload = JSON.parse(new TextDecoder().decode(fromBase64Url(payloadPart))) as { userId?: string; exp?: number };
+    if (!payload.userId || !payload.exp || payload.exp < Math.floor(Date.now() / 1000)) return null;
+    const expected = await signSession(payloadPart, secret);
+    if (expected !== signaturePart) return null;
+    return payload.userId;
+  } catch {
+    return null;
+  }
+}
+
+async function authenticate(request: Request, env: Env): Promise<string | null> {
+  const header = request.headers.get("Authorization") || "";
+  if (!header.startsWith("Bearer ")) return null;
+  return verifySession(header.slice(7), env.RECEIPTFLOW_ACCESS_CODE);
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
@@ -199,17 +247,33 @@ export default {
     try {
       if (url.pathname === "/api/health") return jsonResponse({ ok: true, service: "receiptflow" });
 
+      if (url.pathname === "/api/auth/login" && request.method === "POST") {
+        const body = await request.json().catch(() => null) as { code?: unknown } | null;
+        const code = typeof body?.code === "string" ? body.code : "";
+        if (!code || code !== env.RECEIPTFLOW_ACCESS_CODE) {
+          return jsonResponse({ error: "Invalid access string." }, 401);
+        }
+        const userId = await sha256Hex(code);
+        const payload = base64Url(new TextEncoder().encode(JSON.stringify({
+          userId,
+          exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30
+        })));
+        const signature = await signSession(payload, env.RECEIPTFLOW_ACCESS_CODE);
+        return jsonResponse({ token: payload + "." + signature });
+      }
+
       if (url.pathname === "/api/receipts" && request.method === "GET") {
-        const userId = url.searchParams.get("userId");
-        if (!userId) return jsonResponse({ error: "userId is required" }, 400);
+        const userId = await authenticate(request, env);
+        if (!userId) return jsonResponse({ error: "Authentication required" }, 401);
         return jsonResponse(await listReceipts(env, userId));
       }
 
       if (url.pathname === "/api/receipts" && request.method === "POST") {
+        const userId = await authenticate(request, env);
+        if (!userId) return jsonResponse({ error: "Authentication required" }, 401);
         const form = await request.formData();
-        const userId = String(form.get("userId") || "");
         const file = form.get("file");
-        if (!userId || !(file instanceof File)) return jsonResponse({ error: "userId and image file are required" }, 400);
+        if (!(file instanceof File)) return jsonResponse({ error: "Image file is required" }, 400);
 
         const uploadedAt = new Date().toISOString();
         const data = await processReceipt(file, env);
@@ -220,8 +284,8 @@ export default {
       const match = url.pathname.match(/^\/api\/receipts\/([^/]+)$/);
       if (match && request.method === "DELETE") {
         const id = match[1];
-        const userId = url.searchParams.get("userId");
-        if (!userId) return jsonResponse({ error: "userId is required" }, 400);
+        const userId = await authenticate(request, env);
+        if (!userId) return jsonResponse({ error: "Authentication required" }, 401);
         const result = await env.DB.prepare("DELETE FROM receipts WHERE id = ? AND user_id = ?").bind(id,userId).run();
         return result.meta.changes ? jsonResponse({ ok: true }) : jsonResponse({ error: "Receipt not found" }, 404);
       }
