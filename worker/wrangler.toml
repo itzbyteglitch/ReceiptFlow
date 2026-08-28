@@ -9,3 +9,18 @@ OPENROUTER_MODEL = "openrouter/free"
 binding = "DB"
 database_name = "receiptflow-db"
 database_id = "7478ab69-8b59-47c2-beb7-7c8eb7649876"
+[observability]
+enabled = false
+head_sampling_rate = 1
+redact_query_string = false
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = false
+persist = true
+head_sampling_rate = 1
