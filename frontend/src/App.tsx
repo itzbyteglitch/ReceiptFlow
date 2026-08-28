@@ -139,7 +139,6 @@ function App() {
     <main className="app-shell">
       <header className="topbar">
         <div className="brand"><div className="brand-mark"><Receipt size={20}/></div><div><strong>ReceiptFlow</strong><span>Receipt intelligence</span></div></div>
-        <label className="upload-button"><Plus size={18}/> Upload receipt<input type="file" accept="image/*" hidden onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}/></label>
       </header>
 
       <section className="hero">
@@ -155,8 +154,8 @@ function App() {
         <Stat icon={<FileText/>} label="Receipts" value={String(records.length)} />
       </section>
 
-      <section className={`dropzone ${dragging ? "dragging" : ""}`} onDragOver={(e) => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(e) => { e.preventDefault(); setDragging(false); const file=e.dataTransfer.files[0]; if(file) upload(file); }}>
-        {uploading ? <><Loader2 className="spin" size={28}/><strong>Analyzing receipt…</strong><span>Extracting merchant, dates, items, taxes and payment details.</span></> : <><Upload size={28}/><strong>Drop a receipt here</strong><span>or use the Upload receipt button. Images only.</span></>}
+      <section className={`dropzone ${dragging ? "dragging" : ""}`} onDragOver={(e) => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(e) => { e.preventDefault(); setDragging(false); const file=e.dataTransfer.files[0]; if(file) upload(file); }} onClick={() => document.getElementById("receipt-file-input")?.click()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") document.getElementById("receipt-file-input")?.click(); }}>
+        {uploading ? <><Loader2 className="spin" size={28}/><strong>Analyzing receipt…</strong><span>Extracting merchant, dates, items, taxes and payment details.</span></> : <><Upload size={28}/><strong>Drop a receipt here</strong><span>Tap to capture a photo or choose an image</span><input id="receipt-file-input" type="file" accept="image/*" capture="environment" hidden onChange={(e) => { const file=e.target.files?.[0]; if (file) upload(file); e.currentTarget.value=""; }} /></>}
       </section>
 
       <section className="grid-two">
