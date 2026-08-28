@@ -76,7 +76,7 @@ function extractJson(text: string): unknown {
     const start = cleaned.indexOf("{");
     const end = cleaned.lastIndexOf("}");
     if (start === -1 || end <= start) {
-      throw new Error("AI did not return a JSON object.");
+      throw new Error(`AI raw response: ${cleaned}`);
     }
     return JSON.parse(cleaned.slice(start, end + 1));
   }
@@ -138,8 +138,18 @@ async function processReceipt(file: File, env: Env): Promise<Receipt> {
   let text = message?.content;
   if (Array.isArray(text)) text = text.map((part: any) => typeof part === "string" ? part : part?.text || "").join("");
   if (typeof text !== "string" || !text.trim()) throw new Error("AI returned no structured content.");
-  const parsed = S.safeParse(extractJson(text));
-  if (!parsed.success) throw new Error("AI output failed ReceiptFlow validation.");
+  let extracted: unknown;
+  try {
+    extracted = extractJson(text);
+  } catch (error) {
+    // During development, surface the complete model response so we can inspect
+    // what the free vision model actually returned instead of hiding it.
+    throw error;
+  }
+  const parsed = S.safeParse(extracted);
+  if (!parsed.success) {
+    throw new Error(`AI raw response: ${text}`);
+  }
   return parsed.data;
 }
 
