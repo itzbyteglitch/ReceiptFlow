@@ -137,6 +137,32 @@ function App() {
     return textMatch && categoryMatch && paymentMatch && dateMatch;
   });
 
+  function exportData(format: "json" | "csv") {
+    const filename = `receiptflow-export-${new Date().toISOString().slice(0,10)}`;
+    if (format === "json") {
+      const blob = new Blob([JSON.stringify(filtered, null, 2)], { type: "application/json" });
+      downloadBlob(blob, filename + ".json");
+      return;
+    }
+    const columns = ["id","merchant","shopping_date","uploaded_at","receipt_type","invoice_number","category","items","total","currency","payment_method","payment_status","notes"];
+    const rows = filtered.map(r => [
+      r.id, r.merchant.name, r.receipt.shopping_date, r.uploaded_at, r.receipt.type, r.receipt.invoice_number,
+      r.items.map(i => i.category).join("; "), r.items.map(i => i.name).join("; "), r.amounts.total, r.receipt.currency,
+      r.payment.method, r.payment.status, r.metadata.notes
+    ]);
+    const csv = [columns, ...rows].map(row => row.map(value => `"${String(value ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+    downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), filename + ".csv");
+  }
+
+  function downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   const total = records.reduce((sum, r) => sum + r.amounts.total, 0);
   const monthTotal = records.filter((r) => r.receipt.shopping_date.startsWith(currentMonth)).reduce((sum, r) => sum + r.amounts.total, 0);
 
@@ -186,7 +212,7 @@ function App() {
       </section>
 
       <section className="panel">
-        <div className="section-head"><div><h2>Receipts</h2><span>{filtered.length} records</span></div><div className="search"><Search size={17}/><input placeholder="Search receipts…" value={search} onChange={(e)=>setSearch(e.target.value)}/></div></div><div className="receipt-filters"><select value={categoryFilter} onChange={(e)=>setCategoryFilter(e.target.value)}><option value="all">All categories</option>{filterCategories.map(c=><option key={c} value={c}>{c}</option>)}</select><select value={paymentFilter} onChange={(e)=>setPaymentFilter(e.target.value)}><option value="all">All payment methods</option>{paymentMethods.map(p=><option key={p} value={p}>{p}</option>)}</select><select value={dateFilter} onChange={(e)=>setDateFilter(e.target.value)}><option value="all">Any date</option><option value="month">This month</option><option value="30">Last 30 days</option></select>{(search||categoryFilter!=="all"||paymentFilter!=="all"||dateFilter!=="all")&&<button className="filter-clear" onClick={()=>{setSearch("");setCategoryFilter("all");setPaymentFilter("all");setDateFilter("all");}}>Clear</button>}</div>
+        <div className="section-head"><div><h2>Receipts</h2><span>{filtered.length} records</span></div><div className="receipt-toolbar"><div className="search"><Search size={17}/><input placeholder="Search receipts…" value={search} onChange={(e)=>setSearch(e.target.value)}/></div><button className="export-button" onClick={()=>exportData("csv")} disabled={!filtered.length}>Export CSV</button><button className="export-button" onClick={()=>exportData("json")} disabled={!filtered.length}>Export JSON</button></div></div><div className="receipt-filters"><select value={categoryFilter} onChange={(e)=>setCategoryFilter(e.target.value)}><option value="all">All categories</option>{filterCategories.map(c=><option key={c} value={c}>{c}</option>)}</select><select value={paymentFilter} onChange={(e)=>setPaymentFilter(e.target.value)}><option value="all">All payment methods</option>{paymentMethods.map(p=><option key={p} value={p}>{p}</option>)}</select><select value={dateFilter} onChange={(e)=>setDateFilter(e.target.value)}><option value="all">Any date</option><option value="month">This month</option><option value="30">Last 30 days</option></select>{(search||categoryFilter!=="all"||paymentFilter!=="all"||dateFilter!=="all")&&<button className="filter-clear" onClick={()=>{setSearch("");setCategoryFilter("all");setPaymentFilter("all");setDateFilter("all");}}>Clear</button>}</div>
         <div className="receipt-list">
           {filtered.length === 0 ? <div className="empty"><FileText size={32}/><strong>No receipts yet</strong><span>Upload your first receipt to start building your dashboard.</span></div> : filtered.map(r => <button className="receipt-row" key={r.id} onClick={()=>setSelected(r)}>
             <div className="receipt-icon"><Receipt size={19}/></div><div className="receipt-main"><strong>{r.merchant.name}</strong><span>Shopping: {displayDate(r.receipt.shopping_date)} · Uploaded: {displayDateTime(r.uploaded_at)}</span><small>{r.metadata.notes}</small></div><strong className="amount">{money(r.amounts.total, r.receipt.currency)}</strong>
