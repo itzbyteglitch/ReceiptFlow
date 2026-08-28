@@ -253,7 +253,7 @@ export default {
         const code = typeof body?.code === "string" ? body.code.trim() : "";
         if (!code) return jsonResponse({ error: "Access string is required." }, 400);
         const codeHash = await sha256Hex(code);
-        const account = await env.DB.prepare("SELECT id FROM access_codes WHERE code_hash = ? AND active = 1").bind(codeHash).first<{id:string}>();
+        const account = await env.DB.prepare("SELECT id, label FROM access_codes WHERE code_hash = ? AND active = 1").bind(codeHash).first<{id:string;label:string}>();
         if (!account) return jsonResponse({ error: "Invalid access string." }, 401);
         const payload = base64Url(new TextEncoder().encode(JSON.stringify({
           userId: account.id,
