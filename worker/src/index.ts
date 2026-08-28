@@ -185,6 +185,7 @@ export default {
         const data = await processReceipt(file, env);
         const record = await saveReceipt(env, userId, data, uploadedAt);
         return jsonResponse(record, 201);
+      }
 
       const match = url.pathname.match(/^\/api\/receipts\/([^/]+)$/);
       if (match && request.method === "DELETE") {
