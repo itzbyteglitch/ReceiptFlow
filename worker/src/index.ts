@@ -4,7 +4,6 @@ interface Env {
   DB: D1Database;
   OPENROUTER_API_KEY: string;
   OPENROUTER_MODEL?: string;
-  RECEIPTFLOW_ACCESS_CODE: string;
 }
 
 const S = z.object({
@@ -81,13 +80,15 @@ async function signSession(payload: string, secret: string): Promise<string> {
   return base64Url(new Uint8Array(signature));
 }
 
-async function verifySession(token: string, secret: string): Promise<string | null> {
+async function verifySession(token: string, env: Env): Promise<string | null> {
   const [payloadPart, signaturePart] = token.split(".");
   if (!payloadPart || !signaturePart) return null;
   try {
-    const payload = JSON.parse(new TextDecoder().decode(fromBase64Url(payloadPart))) as { userId?: string; exp?: number };
-    if (!payload.userId || !payload.exp || payload.exp < Math.floor(Date.now() / 1000)) return null;
-    const expected = await signSession(payloadPart, secret);
+    const payload = JSON.parse(new TextDecoder().decode(fromBase64Url(payloadPart))) as { userId?: string; codeHash?: string; exp?: number };
+    if (!payload.userId || !payload.codeHash || !payload.exp || payload.exp < Math.floor(Date.now() / 1000)) return null;
+    const code = await env.DB.prepare("SELECT id FROM access_codes WHERE code_hash = ? AND active = 1").bind(payload.codeHash).first<{id:string}>();
+    if (!code) return null;
+    const expected = await signSession(payloadPart, payload.codeHash);
     if (expected !== signaturePart) return null;
     return payload.userId;
   } catch {
@@ -98,7 +99,7 @@ async function verifySession(token: string, secret: string): Promise<string | nu
 async function authenticate(request: Request, env: Env): Promise<string | null> {
   const header = request.headers.get("Authorization") || "";
   if (!header.startsWith("Bearer ")) return null;
-  return verifySession(header.slice(7), env.RECEIPTFLOW_ACCESS_CODE);
+  return verifySession(header.slice(7), env);
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
@@ -249,16 +250,17 @@ export default {
 
       if (url.pathname === "/api/auth/login" && request.method === "POST") {
         const body = await request.json().catch(() => null) as { code?: unknown } | null;
-        const code = typeof body?.code === "string" ? body.code : "";
-        if (!code || code !== env.RECEIPTFLOW_ACCESS_CODE) {
-          return jsonResponse({ error: "Invalid access string." }, 401);
-        }
-        const userId = await sha256Hex(code);
+        const code = typeof body?.code === "string" ? body.code.trim() : "";
+        if (!code) return jsonResponse({ error: "Access string is required." }, 400);
+        const codeHash = await sha256Hex(code);
+        const account = await env.DB.prepare("SELECT id FROM access_codes WHERE code_hash = ? AND active = 1").bind(codeHash).first<{id:string}>();
+        if (!account) return jsonResponse({ error: "Invalid access string." }, 401);
         const payload = base64Url(new TextEncoder().encode(JSON.stringify({
-          userId,
+          userId: account.id,
+          codeHash,
           exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30
         })));
-        const signature = await signSession(payload, env.RECEIPTFLOW_ACCESS_CODE);
+        const signature = await signSession(payload, codeHash);
         return jsonResponse({ token: payload + "." + signature });
       }
 
