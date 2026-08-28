@@ -199,6 +199,42 @@ function Details({record,onBack,onDelete}:{record:ReceiptRecord;onBack:()=>void;
   </main>
 }
 
+function Login({apiUrl,onLogin}:{apiUrl:string;onLogin:(token:string,label:string)=>void}) {
+  const [code,setCode]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState("");
+
+  async function submit(e:React.FormEvent) {
+    e.preventDefault();
+    setLoading(true); setError("");
+    try {
+      const response=await fetch(`${apiUrl}/api/auth/login`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({code})
+      });
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok) throw new Error(data.error || "Login failed.");
+      onLogin(data.token,data.label || "Account");
+    } catch(error) {
+      setError(error instanceof Error ? error.message : "Login failed.");
+    } finally { setLoading(false); }
+  }
+
+  return <main className="app-shell login-shell">
+    <section className="login-card">
+      <div className="brand"><div className="brand-mark"><Receipt size={20}/></div><div><strong>ReceiptFlow</strong><span>Receipt intelligence</span></div></div>
+      <div className="login-copy"><p className="eyebrow">PRIVATE ACCESS</p><h1>Sign in to ReceiptFlow.</h1><p>Enter your access code to access your private receipt dashboard.</p></div>
+      <form onSubmit={submit}>
+        <label className="login-label" htmlFor="access-code">Access code</label>
+        <input id="access-code" className="login-input" type="password" value={code} onChange={e=>setCode(e.target.value)} placeholder="Enter your access code" autoComplete="current-password" autoFocus />
+        {error && <div className="notice"><span>{error}</span></div>}
+        <button className="login-button" disabled={loading || !code}>{loading ? "Signing in…" : "Continue"}</button>
+      </form>
+    </section>
+  </main>;
+}
+
 function Stat({icon,label,value}:{icon:React.ReactNode;label:string;value:string}) { return <div className="stat"><div className="stat-icon">{icon}</div><span>{label}</span><strong>{value}</strong></div> }
 function Panel({title,icon,children}:{title:string;icon?:React.ReactNode;children:React.ReactNode}) { return <section className="panel"><div className="panel-title"><h2>{title}</h2>{icon}</div>{children}</section> }
 function Info({label,value,strong}:{label:string;value:string;strong?:boolean}) { return <div className="info"><span>{label}</span><strong className={strong?"highlight":""}>{value}</strong></div> }
