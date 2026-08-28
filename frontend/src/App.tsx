@@ -135,10 +135,6 @@ function App() {
   const currentMonth = new Date().toISOString().slice(0, 7);
   const monthTotal = records.filter((r) => r.receipt.shopping_date.startsWith(currentMonth)).reduce((sum, r) => sum + r.amounts.total, 0);
 
-  const merchants = Object.entries(records.reduce<Record<string, number>>((a, r) => {
-    a[r.merchant.name] = (a[r.merchant.name] || 0) + r.amounts.total; return a;
-  }, {})).sort((a,b) => b[1]-a[1]).slice(0, 6).map(([name, value]) => ({ name, value }));
-
   const categories = Object.entries(records.flatMap((r) => r.items).reduce<Record<string, number>>((a, i) => {
     a[i.category] = (a[i.category] || 0) + i.total_price; return a;
   }, {})).sort((a,b) => b[1]-a[1]).slice(0, 6).map(([name, value]) => ({ name, value }));
@@ -181,7 +177,6 @@ function App() {
       </div>}
 
       <section className="grid-two">
-        <Panel title="Merchant breakdown" icon={<BarChart3/>}><ResponsiveContainer width="100%" height={250}><BarChart data={merchants} layout="vertical"><CartesianGrid strokeDasharray="3 3" horizontal={false}/><XAxis type="number" hide/><YAxis type="category" dataKey="name" width={100}/><Tooltip formatter={(v) => money(Number(v))}/><Bar dataKey="value" radius={[0,6,6,0]} /></BarChart></ResponsiveContainer></Panel>
         <Panel title="Category breakdown" icon={<BarChart3/>}><ResponsiveContainer width="100%" height={250}><PieChart><Pie data={categories} dataKey="value" nameKey="name" innerRadius={58} outerRadius={88} paddingAngle={3}>{categories.map((_,i)=><Cell key={i}/>)}</Pie><Tooltip formatter={(v) => money(Number(v))}/></PieChart></ResponsiveContainer><div className="legend">{categories.map(c=><span key={c.name}><i/>{c.name} · {money(c.value)}</span>)}</div></Panel>
       </section>
 
