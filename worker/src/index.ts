@@ -63,8 +63,23 @@ function bytesToBase64(bytes: Uint8Array): string {
 }
 
 function extractJson(text: string): unknown {
-  const cleaned = text.replace(/^\s*\`\`\`json\s*/i, "").replace(/\s*\`\`\`\s*$/i, "").trim();
-  return JSON.parse(cleaned);
+  // Free vision models may prepend safety/status text or markdown around JSON.
+  // Extract the JSON object rather than assuming the entire response is JSON.
+  const cleaned = text
+    .replace(/^\s*\`\`\`(?:json)?\s*/i, "")
+    .replace(/\s*\`\`\`\s*$/i, "")
+    .trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
+    if (start === -1 || end <= start) {
+      throw new Error("AI did not return a JSON object.");
+    }
+    return JSON.parse(cleaned.slice(start, end + 1));
+  }
 }
 
 async function processReceipt(file: File, env: Env): Promise<Receipt> {
@@ -119,8 +134,10 @@ async function processReceipt(file: File, env: Env): Promise<Receipt> {
 
   const payload = await response.json() as any;
   if (!response.ok) throw new Error(payload?.error?.message || "OpenRouter request failed.");
-  const text = payload?.choices?.[0]?.message?.content;
-  if (typeof text !== "string") throw new Error("AI returned no structured content.");
+  const message = payload?.choices?.[0]?.message;
+  let text = message?.content;
+  if (Array.isArray(text)) text = text.map((part: any) => typeof part === "string" ? part : part?.text || "").join("");
+  if (typeof text !== "string" || !text.trim()) throw new Error("AI returned no structured content.");
   const parsed = S.safeParse(extractJson(text));
   if (!parsed.success) throw new Error("AI output failed ReceiptFlow validation.");
   return parsed.data;
