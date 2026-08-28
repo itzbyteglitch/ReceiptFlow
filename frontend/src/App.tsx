@@ -139,7 +139,7 @@ function App() {
   if (!token) return <Login apiUrl={API_URL} onLogin={(value, label) => { localStorage.setItem("receiptflow-session", value); localStorage.setItem("receiptflow-account-label", label); setToken(value); setAccountLabel(label); }} />;
 
   if (selected) {
-    return <Details record={selected} onBack={() => setSelected(null)} onDelete={() => remove(selected.id)} />;
+    return <Details record={selected} onBack={() => setSelected(null)} onDelete={() => remove(selected.id)} onSave={(updated) => { setRecords((current) => current.map((r) => r.id === updated.id ? updated : r)); setSelected(updated); }} />;
   }
 
   return (
