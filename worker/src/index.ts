@@ -60,11 +60,11 @@ function jsonResponse(data: unknown, status = 200) {
 
 function base64Url(bytes: Uint8Array): string {
   return btoa(String.fromCharCode(...bytes))
-    .replace(/\\+/g, "-").replace(/\\//g, "_").replace(/=+$/g, "");
+    .replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
 }
 
 function fromBase64Url(value: string): Uint8Array {
-  const padded = value.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - value.length % 4) % 4);
+  const padded = value.replaceAll("-", "+").replaceAll("_", "/") + "=".repeat((4 - value.length % 4) % 4);
   const binary = atob(padded);
   return Uint8Array.from(binary, (char) => char.charCodeAt(0));
 }
