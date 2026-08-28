@@ -43,10 +43,12 @@ Rules:
 6. receipt_owner may only be populated when the receipt itself clearly provides a person's identity or association. Otherwise use "unspecified".
 7. Notes must summarize only observable facts. Do not turn guesses into facts.
 8. Add concise warnings for important unreadable or inconsistent fields.
-9. Category should be a useful broad category such as Groceries, Food, Shopping, Education, Clothing, Transport, Utilities, Healthcare, Entertainment, Services, or Other.
+9. Category should be a useful broad product type such as Groceries, Food, Shopping, Education, Clothing, Transport, Utilities, Healthcare, Entertainment, Services, or Other. Use "Other" for incidental receipt charges/items that do not reasonably fit another category, including carry bags, shopping bags, packaging charges, convenience fees, small miscellaneous charges, and similar items.
 10. total_price should correspond to the line total visible on the receipt. Do not invent missing prices.
 11. If taxes are shown separately, capture them. If they are included in prices and no separate amount is shown, use 0.
-12. receipt.type should classify the document, for example retail_receipt, invoice, school_invoice, restaurant_bill, utility_bill, pharmacy_receipt, or other.
+12. Never force a product into an unrelated category just to avoid "Other". "Other" is a valid category and should be preferred when no category is a sensible fit.
+13. Keep each item category independent; classify every line item separately.
+14. receipt.type should classify the document, for example retail_receipt, invoice, school_invoice, restaurant_bill, utility_bill, pharmacy_receipt, or other.
 `;
 
 function jsonResponse(data: unknown, status = 200) {
@@ -69,7 +71,12 @@ function fromBase64Url(value: string): Uint8Array {
   return Uint8Array.from(binary, (char) => char.charCodeAt(0));
 }
 
-function pick(value: any, keys: string[]): Record<string, any> {\n  if (!value || typeof value !== "object" || Array.isArray(value)) return {};\n  return Object.fromEntries(keys.filter((k) => Object.prototype.hasOwnProperty.call(value, k)).map((k) => [k, value[k]]));\n}\n\nasync function sha256Hex(value: string): Promise<string> {
+function pick(value: any, keys: string[]): Record<string, any> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(keys.filter((k) => Object.prototype.hasOwnProperty.call(value, k)).map((k) => [k, value[k]]));
+}
+
+async function sha256Hex(value: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
