@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   FileText,
   Loader2,
-  Plus,
   Receipt,
   Search,
   Trash2,
@@ -73,14 +72,24 @@ function App() {
   const [message, setMessage] = useState("");
   const [search, setSearch] = useState("");
   const [dragging, setDragging] = useState(false);
+  const [token, setToken] = useState(() => localStorage.getItem("receiptflow-session"));
+
+  function logout() {
+    localStorage.removeItem("receiptflow-session");
+    setToken(null);
+    setRecords([]);
+    setSelected(null);
+  }
 
   async function load() {
-    const response = await fetch(`${API_URL}/api/receipts?userId=${encodeURIComponent(clientId())}`);
+    if (!token) return;
+    const response = await fetch(`${API_URL}/api/receipts`, { headers: { Authorization: `Bearer ${token}` } });
+    if (response.status === 401) { logout(); return; }
     if (!response.ok) throw new Error("Could not load receipts");
     setRecords(await response.json());
   }
 
-  useEffect(() => { load().catch(() => setMessage("Backend is not connected yet.")); }, []);
+  useEffect(() => { load().catch(() => setMessage("Backend is not connected yet.")); }, [token]);
 
   async function upload(file: File) {
     setUploading(true);
@@ -89,7 +98,7 @@ function App() {
       const form = new FormData();
       form.append("file", file);
       form.append("userId", clientId());
-      const response = await fetch(`${API_URL}/api/receipts`, { method: "POST", body: form });
+      const response = await fetch(`${API_URL}/api/receipts`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: form });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Processing failed");
       setRecords((current) => [data, ...current]);
@@ -131,6 +140,8 @@ function App() {
     a[i.category] = (a[i.category] || 0) + i.total_price; return a;
   }, {})).sort((a,b) => b[1]-a[1]).slice(0, 6).map(([name, value]) => ({ name, value }));
 
+  if (!token) return <Login apiUrl={API_URL} onLogin={(value) => { localStorage.setItem("receiptflow-session", value); setToken(value); }} />;
+
   if (selected) {
     return <Details record={selected} onBack={() => setSelected(null)} onDelete={() => remove(selected.id)} />;
   }
@@ -142,8 +153,8 @@ function App() {
       </header>
 
       <section className="hero">
-        <div><p className="eyebrow">PRIVATE BY DESIGN</p><h1>Your receipts, turned into useful data.</h1><p>AI extracts spending information into a searchable dashboard. Original receipt images are temporary and never displayed here.</p></div>
-        <div className="privacy-pill"><CheckCircle2 size={16}/> Original images expire within 24h</div>
+        <div><p className="eyebrow">PRIVATE BY DESIGN</p><h1>Your receipts, turned into useful data.</h1><p>AI extracts spending information into a searchable dashboard. Receipt images are processed privately and are never displayed or stored by ReceiptFlow.</p></div>
+        <button className="back" onClick={logout}>Sign out</button>
       </section>
 
       {message && <div className="notice"><span>{message}</span><button onClick={() => setMessage("")}><X size={16}/></button></div>}
@@ -182,7 +193,7 @@ function Details({record,onBack,onDelete}:{record:ReceiptRecord;onBack:()=>void;
     <section className="grid-two"><Panel title="Receipt information"><Info label="Invoice / receipt no." value={record.receipt.invoice_number}/><Info label="Customer" value={record.customer.name}/><Info label="Location" value={[record.merchant.city,record.merchant.state].filter(x=>x!=="unspecified").join(", ") || "unspecified"}/><Info label="Payment" value={record.payment.method}/><Info label="Status" value={record.payment.status}/><Info label="Confidence" value={`${Math.round(record.metadata.confidence*100)}%`}/></Panel>
       <Panel title="Amounts"><Info label="Subtotal" value={money(record.amounts.subtotal,record.receipt.currency)}/><Info label="Discount" value={money(record.amounts.discount,record.receipt.currency)}/><Info label="Tax" value={money(record.amounts.tax,record.receipt.currency)}/><Info label="Paid" value={money(record.amounts.paid,record.receipt.currency)}/><Info label="Pending" value={money(record.amounts.pending,record.receipt.currency)}/><Info label="Total" value={money(record.amounts.total,record.receipt.currency)} strong/></Panel></section>
     <section className="panel"><div className="section-head"><div><h2>Items</h2><span>{record.items.length} items</span></div></div><div className="items-table"><div className="item-head"><span>Item</span><span>Category</span><span>Qty</span><span>Total</span></div>{record.items.map(i=><div className="item-row" key={i.id}><span><strong>{i.name}</strong><small>{i.description}</small></span><span>{i.category}</span><span>{i.quantity} {i.unit}</span><strong>{money(i.total_price,record.receipt.currency)}</strong></div>)}</div></section>
-    <p className="privacy-note"><CheckCircle2 size={16}/> The original receipt image is not displayed or permanently stored.</p>
+    <p className="privacy-note"><CheckCircle2 size={16}/> ReceiptFlow stores extracted receipt data only; original images are not displayed or stored.</p>
   </main>
 }
 
