@@ -69,7 +69,7 @@ function fromBase64Url(value: string): Uint8Array {
   return Uint8Array.from(binary, (char) => char.charCodeAt(0));
 }
 
-async function sha256Hex(value: string): Promise<string> {
+function pick(value: any, keys: string[]): Record<string, any> {\n  if (!value || typeof value !== "object" || Array.isArray(value)) return {};\n  return Object.fromEntries(keys.filter((k) => Object.prototype.hasOwnProperty.call(value, k)).map((k) => [k, value[k]]));\n}\n\nasync function sha256Hex(value: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -284,6 +284,26 @@ export default {
       }
 
       const match = url.pathname.match(/^\/api\/receipts\/([^/]+)$/);
+      if (match && request.method === "PATCH") {
+        const id = match[1];
+        const userId = await authenticate(request, env);
+        if (!userId) return jsonResponse({ error: "Authentication required" }, 401);
+        const body = await request.json().catch(() => null) as any;
+        if (!body || typeof body !== "object") return jsonResponse({ error: "Invalid update" }, 400);
+        // Financial amounts and item prices are intentionally not editable.
+        const current = await env.DB.prepare("SELECT merchant_json, receipt_json, customer_json, payment_json, metadata_json FROM receipts WHERE id = ? AND user_id = ?").bind(id,userId).first<any>();
+        if (!current) return jsonResponse({ error: "Receipt not found" }, 404);
+        const merchant = { ...JSON.parse(current.merchant_json), ...pick(body.merchant, ["name","address","city","state","country","phone","gstin"]) };
+        const receipt = { ...JSON.parse(current.receipt_json), ...pick(body.receipt, ["type","invoice_number","shopping_date","shopping_time","currency"]) };
+        const customer = { ...JSON.parse(current.customer_json), ...pick(body.customer, ["name","id","address"]) };
+        const payment = { ...JSON.parse(current.payment_json), ...pick(body.payment, ["method","status"]) };
+        const metadata = { ...JSON.parse(current.metadata_json), ...pick(body.metadata, ["receipt_owner","tags","notes"]) };
+        await env.DB.prepare("UPDATE receipts SET merchant_json=?, receipt_json=?, customer_json=?, payment_json=?, metadata_json=? WHERE id=? AND user_id=?")
+          .bind(JSON.stringify(merchant),JSON.stringify(receipt),JSON.stringify(customer),JSON.stringify(payment),JSON.stringify(metadata),id,userId).run();
+        return jsonResponse((await listReceipts(env,userId)).find((r) => r.id === id));
+      }
+
+
       if (match && request.method === "DELETE") {
         const id = match[1];
         const userId = await authenticate(request, env);
