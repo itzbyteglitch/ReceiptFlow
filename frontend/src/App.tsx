@@ -15,9 +15,6 @@ import {
   X
 } from "lucide-react";
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
   Cell,
   Pie,
   PieChart,
@@ -188,6 +185,7 @@ function App() {
           </button>)}
         </div>
       </section>
+      <Footer />
     </main>
   );
 }
@@ -264,6 +262,7 @@ function Login({apiUrl,onLogin}:{apiUrl:string;onLogin:(token:string,label:strin
         <button className="login-button" disabled={loading || !code}>{loading ? "Signing in…" : "Continue"}</button>
       </form>
     </section>
+    <Footer />
   </main>;
 }
 
