@@ -1,4 +1,4 @@
-name = "receiptflow-api"
+name = "receiptflow"
 main = "src/index.ts"
 compatibility_date = "2026-08-28"
 
