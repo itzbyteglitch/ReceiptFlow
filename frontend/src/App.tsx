@@ -73,9 +73,11 @@ function App() {
   const [search, setSearch] = useState("");
   const [dragging, setDragging] = useState(false);
   const [token, setToken] = useState(() => localStorage.getItem("receiptflow-session"));
+  const [accountLabel, setAccountLabel] = useState(() => localStorage.getItem("receiptflow-account-label") || "Account");
 
   function logout() {
     localStorage.removeItem("receiptflow-session");
+    localStorage.removeItem("receiptflow-account-label");
     setToken(null);
     setRecords([]);
     setSelected(null);
@@ -140,7 +142,7 @@ function App() {
     a[i.category] = (a[i.category] || 0) + i.total_price; return a;
   }, {})).sort((a,b) => b[1]-a[1]).slice(0, 6).map(([name, value]) => ({ name, value }));
 
-  if (!token) return <Login apiUrl={API_URL} onLogin={(value) => { localStorage.setItem("receiptflow-session", value); setToken(value); }} />;
+  if (!token) return <Login apiUrl={API_URL} onLogin={(value, label) => { localStorage.setItem("receiptflow-session", value); localStorage.setItem("receiptflow-account-label", label); setToken(value); setAccountLabel(label); }} />;
 
   if (selected) {
     return <Details record={selected} onBack={() => setSelected(null)} onDelete={() => remove(selected.id)} />;
@@ -154,7 +156,7 @@ function App() {
 
       <section className="hero">
         <div><p className="eyebrow">PRIVATE BY DESIGN</p><h1>Your receipts, turned into useful data.</h1><p>AI extracts spending information into a searchable dashboard. Receipt images are processed privately and are never displayed or stored by ReceiptFlow.</p></div>
-        <button className="back" onClick={logout}>Sign out</button>
+        <div className="account-area"><span>Logged in as <strong>{accountLabel}</strong></span><button className="back" onClick={logout}>Sign out</button></div>
       </section>
 
       {message && <div className="notice"><span>{message}</span><button onClick={() => setMessage("")}><X size={16}/></button></div>}
