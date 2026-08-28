@@ -154,6 +154,25 @@ function App() {
     downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), filename + ".csv");
   }
 
+  function exportPdf() {
+    const filename = `receiptflow-export-${new Date().toISOString().slice(0,10)}.pdf`;
+    const rows = filtered.map(r => `<tr><td>${escPdf(r.merchant.name)}</td><td>${escPdf(r.receipt.shopping_date)}</td><td>${escPdf(r.receipt.invoice_number || "Unspecified")}</td><td>${escPdf(r.amounts.total)} ${escPdf(r.receipt.currency)}</td><td>${escPdf(r.payment.method || "Unspecified")}</td></tr>`).join("");
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(`<!doctype html><html><head><title>${filename}</title><style>
+      @page{size:A4;margin:18mm}body{font-family:Inter,Arial,sans-serif;color:#171717;margin:0}
+      h1{font-size:24px;margin:0 0 4px}p{color:#666;font-size:12px;margin:0 0 22px}
+      table{width:100%;border-collapse:collapse;font-size:11px}th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+      th,td{padding:9px 7px;border-bottom:1px solid #e5e5e5}tfoot td{font-weight:700;border-top:2px solid #171717}
+      .brand{font-weight:800}.foot{margin-top:24px;font-size:10px;color:#777}
+    </style></head><body><h1><span class="brand">ReceiptFlow</span></h1><p>Receipt export · ${new Date().toLocaleString()} · ${filtered.length} receipt(s)</p>
+    <table><thead><tr><th>Merchant</th><th>Shopping date</th><th>Receipt</th><th>Total</th><th>Payment</th></tr></thead><tbody>${rows}</tbody>
+    <tfoot><tr><td colspan="3">Total spending</td><td colspan="2">${escPdf(money(filtered.reduce((sum,r)=>sum+Number(r.amounts.total||0),0)))}</td></tr></tfoot></table>
+    <div class="foot">ReceiptFlow © 2026 | Made by ItzByteGlitch</div><script>window.onload=()=>setTimeout(()=>window.print(),150)</script></body></html>`);
+    w.document.close();
+  }
+  function escPdf(value: unknown) { return String(value ?? "").replace(/[&<>"']/g, ch => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[ch] || ch)); }
+
   function downloadBlob(blob: Blob, filename: string) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -212,7 +231,7 @@ function App() {
       </section>
 
       <section className="panel">
-        <div className="section-head"><div><h2>Receipts</h2><span>{filtered.length} records</span></div><div className="receipt-toolbar"><div className="search"><Search size={17}/><input placeholder="Search receipts…" value={search} onChange={(e)=>setSearch(e.target.value)}/></div><button className="export-button" onClick={()=>exportData("csv")} disabled={!filtered.length}>Export CSV</button><button className="export-button" onClick={()=>exportData("json")} disabled={!filtered.length}>Export JSON</button></div></div><div className="receipt-filters"><select value={categoryFilter} onChange={(e)=>setCategoryFilter(e.target.value)}><option value="all">All categories</option>{filterCategories.map(c=><option key={c} value={c}>{c}</option>)}</select><select value={paymentFilter} onChange={(e)=>setPaymentFilter(e.target.value)}><option value="all">All payment methods</option>{paymentMethods.map(p=><option key={p} value={p}>{p}</option>)}</select><select value={dateFilter} onChange={(e)=>setDateFilter(e.target.value)}><option value="all">Any date</option><option value="month">This month</option><option value="30">Last 30 days</option></select>{(search||categoryFilter!=="all"||paymentFilter!=="all"||dateFilter!=="all")&&<button className="filter-clear" onClick={()=>{setSearch("");setCategoryFilter("all");setPaymentFilter("all");setDateFilter("all");}}>Clear</button>}</div>
+        <div className="section-head"><div><h2>Receipts</h2><span>{filtered.length} records</span></div><div className="receipt-toolbar"><div className="search"><Search size={17}/><input placeholder="Search receipts…" value={search} onChange={(e)=>setSearch(e.target.value)}/></div><button className="export-button" onClick={()=>exportData("csv")} disabled={!filtered.length}>Export CSV</button><button className="export-button" onClick={()=>exportData("json")} disabled={!filtered.length}>Export JSON</button><button className="export-button" onClick={exportPdf} disabled={!filtered.length}>Export PDF</button></div></div><div className="receipt-filters"><select value={categoryFilter} onChange={(e)=>setCategoryFilter(e.target.value)}><option value="all">All categories</option>{filterCategories.map(c=><option key={c} value={c}>{c}</option>)}</select><select value={paymentFilter} onChange={(e)=>setPaymentFilter(e.target.value)}><option value="all">All payment methods</option>{paymentMethods.map(p=><option key={p} value={p}>{p}</option>)}</select><select value={dateFilter} onChange={(e)=>setDateFilter(e.target.value)}><option value="all">Any date</option><option value="month">This month</option><option value="30">Last 30 days</option></select>{(search||categoryFilter!=="all"||paymentFilter!=="all"||dateFilter!=="all")&&<button className="filter-clear" onClick={()=>{setSearch("");setCategoryFilter("all");setPaymentFilter("all");setDateFilter("all");}}>Clear</button>}</div>
         <div className="receipt-list">
           {filtered.length === 0 ? <div className="empty"><FileText size={32}/><strong>No receipts yet</strong><span>Upload your first receipt to start building your dashboard.</span></div> : filtered.map(r => <button className="receipt-row" key={r.id} onClick={()=>setSelected(r)}>
             <div className="receipt-icon"><Receipt size={19}/></div><div className="receipt-main"><strong>{r.merchant.name}</strong><span>Shopping: {displayDate(r.receipt.shopping_date)} · Uploaded: {displayDateTime(r.uploaded_at)}</span><small>{r.metadata.notes}</small></div><strong className="amount">{money(r.amounts.total, r.receipt.currency)}</strong>
