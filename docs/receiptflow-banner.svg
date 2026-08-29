@@ -1,11 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 500" role="img" aria-labelledby="title desc">
-<title id="title">ReceiptFlow</title><desc id="desc">Smart receipt management, without the clutter.</desc>
-<rect width="1600" height="500" rx="28" fill="#fff"/>
-<g transform="translate(90 105) scale(4.53125)">
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="white"/><path d="M18 12h28v40l-6-4-5 4-5-4-6 4-6-4V12Z" fill="none" stroke="black" stroke-width="5"/><path d="M25 24h14M25 33h14M25 42h9" stroke="black" stroke-width="4" stroke-linecap="round"/></svg>
-</g>
-<text x="400" y="215" font-family="Arial,Helvetica,sans-serif" font-size="92" font-weight="700" fill="#000">ReceiptFlow</text>
-<text x="405" y="290" font-family="Arial,Helvetica,sans-serif" font-size="34" fill="#000">Smart receipt management, without the clutter.</text>
-<text x="405" y="340" font-family="Arial,Helvetica,sans-serif" font-size="24" fill="#444">Capture  •  Organize  •  Review  •  Export</text>
-<line x1="400" y1="390" x2="1370" y2="390" stroke="#000" stroke-width="2"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 500">
+<rect width="1600" height="500" rx="28" fill="white"/>
+<image href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22white%22%2F%3E%3Cpath%20d%3D%22M18%2012h28v40l-6-4-5%204-5-4-6%204-6-4V12Z%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%225%22%2F%3E%3Cpath%20d%3D%22M25%2024h14M25%2033h14M25%2042h9%22%20stroke%3D%22black%22%20stroke-width%3D%224%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fsvg%3E" x="90" y="105" width="290" height="290"/>
+<text x="430" y="215" font-family="Arial,Helvetica,sans-serif" font-size="92" font-weight="700" fill="black">ReceiptFlow</text>
+<text x="435" y="290" font-family="Arial,Helvetica,sans-serif" font-size="34" fill="black">Smart receipt management, without the clutter.</text>
+<text x="435" y="340" font-family="Arial,Helvetica,sans-serif" font-size="24" fill="#444">Capture  •  Organize  •  Review  •  Export</text>
+<line x1="430" y1="390" x2="1400" y2="390" stroke="black" stroke-width="2"/>
 </svg>
