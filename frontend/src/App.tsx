@@ -75,6 +75,7 @@ function App() {
   const [token, setToken] = useState(() => localStorage.getItem("receiptflow-session"));
   const [accountLabel, setAccountLabel] = useState(() => localStorage.getItem("receiptflow-account-label") || "Account");
   const [showUploadOptions, setShowUploadOptions] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   function logout() {
     localStorage.removeItem("receiptflow-session");
@@ -122,6 +123,7 @@ function App() {
       return;
     }
     setRecords((current) => current.filter((r) => r.id !== id));
+    setSelectedIds((current) => current.filter((x) => x !== id));
     setSelected(null);
     setMessage("Receipt deleted.");
   }
@@ -137,15 +139,21 @@ function App() {
     return textMatch && categoryMatch && paymentMatch && dateMatch;
   });
 
-  function exportData(format: "json" | "csv") {
+  const visibleIds = filtered.map(r => r.id);
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.includes(id));
+  const selectedRecords = filtered.filter(r => selectedIds.includes(r.id));
+  function toggleSelected(id: string) { setSelectedIds(current => current.includes(id) ? current.filter(x => x !== id) : [...current, id]); }
+  function toggleAllVisible() { setSelectedIds(current => allVisibleSelected ? current.filter(id => !visibleIds.includes(id)) : Array.from(new Set([...current, ...visibleIds]))); }
+  function exportSelectedOrFiltered(format: "json" | "csv") { const original = filtered; const target = selectedRecords.length ? selectedRecords : original; if (target !== filtered) { /* selection is applied below */ } exportData(format, target); }
+  function exportData(format: "json" | "csv", source = filtered) {
     const filename = `receiptflow-export-${new Date().toISOString().slice(0,10)}`;
     if (format === "json") {
-      const blob = new Blob([JSON.stringify(filtered, null, 2)], { type: "application/json" });
+      const blob = new Blob([JSON.stringify(source, null, 2)], { type: "application/json" });
       downloadBlob(blob, filename + ".json");
       return;
     }
     const columns = ["id","merchant","shopping_date","uploaded_at","receipt_type","invoice_number","category","items","total","currency","payment_method","payment_status","notes"];
-    const rows = filtered.map(r => [
+    const rows = source.map(r => [
       r.id, r.merchant.name, r.receipt.shopping_date, r.uploaded_at, r.receipt.type, r.receipt.invoice_number,
       r.items.map(i => i.category).join("; "), r.items.map(i => i.name).join("; "), r.amounts.total, r.receipt.currency,
       r.payment.method, r.payment.status, r.metadata.notes
@@ -154,9 +162,9 @@ function App() {
     downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), filename + ".csv");
   }
 
-  function exportPdf() {
+  function exportPdf(source = filtered) {
     const filename = `receiptflow-export-${new Date().toISOString().slice(0,10)}.pdf`;
-    const rows = filtered.map(r => `<tr><td>${escPdf(r.merchant.name)}</td><td>${escPdf(r.receipt.shopping_date)}</td><td>${escPdf(r.receipt.invoice_number || "Unspecified")}</td><td>${escPdf(r.amounts.total)} ${escPdf(r.receipt.currency)}</td><td>${escPdf(r.payment.method || "Unspecified")}</td></tr>`).join("");
+    const rows = source.map(r => `<tr><td>${escPdf(r.merchant.name)}</td><td>${escPdf(r.receipt.shopping_date)}</td><td>${escPdf(r.receipt.invoice_number || "Unspecified")}</td><td>${escPdf(r.amounts.total)} ${escPdf(r.receipt.currency)}</td><td>${escPdf(r.payment.method || "Unspecified")}</td></tr>`).join("");
     const w = window.open("", "_blank");
     if (!w) return;
     w.document.write(`<!doctype html><html><head><title>${filename}</title><style>
@@ -165,9 +173,9 @@ function App() {
       table{width:100%;border-collapse:collapse;font-size:11px}th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
       th,td{padding:9px 7px;border-bottom:1px solid #e5e5e5}tfoot td{font-weight:700;border-top:2px solid #171717}
       .brand{font-weight:800}.foot{margin-top:24px;font-size:10px;color:#777}
-    </style></head><body><h1><span class="brand">ReceiptFlow</span></h1><p>Receipt export · ${new Date().toLocaleString()} · ${filtered.length} receipt(s)</p>
+    </style></head><body><h1><span class="brand">ReceiptFlow</span></h1><p>Receipt export · ${new Date().toLocaleString()} · ${source.length} receipt(s)</p>
     <table><thead><tr><th>Merchant</th><th>Shopping date</th><th>Receipt</th><th>Total</th><th>Payment</th></tr></thead><tbody>${rows}</tbody>
-    <tfoot><tr><td colspan="3">Total spending</td><td colspan="2">${escPdf(money(filtered.reduce((sum,r)=>sum+Number(r.amounts.total||0),0)))}</td></tr></tfoot></table>
+    <tfoot><tr><td colspan="3">Total spending</td><td colspan="2">${escPdf(money(source.reduce((sum,r)=>sum+Number(r.amounts.total||0),0)))}</td></tr></tfoot></table>
     <div class="foot">ReceiptFlow © 2026 | Made by ItzByteGlitch</div><script>window.onload=()=>setTimeout(()=>window.print(),150)</script></body></html>`);
     w.document.close();
   }
@@ -231,11 +239,9 @@ function App() {
       </section>
 
       <section className="panel">
-        <div className="section-head"><div><h2>Receipts</h2><span>{filtered.length} records</span></div><div className="receipt-toolbar"><div className="search"><Search size={17}/><input placeholder="Search receipts…" value={search} onChange={(e)=>setSearch(e.target.value)}/></div><button className="export-button" onClick={()=>exportData("csv")} disabled={!filtered.length}>Export CSV</button><button className="export-button" onClick={()=>exportData("json")} disabled={!filtered.length}>Export JSON</button><button className="export-button" onClick={exportPdf} disabled={!filtered.length}>Export PDF</button></div></div><div className="receipt-filters"><select value={categoryFilter} onChange={(e)=>setCategoryFilter(e.target.value)}><option value="all">All categories</option>{filterCategories.map(c=><option key={c} value={c}>{c}</option>)}</select><select value={paymentFilter} onChange={(e)=>setPaymentFilter(e.target.value)}><option value="all">All payment methods</option>{paymentMethods.map(p=><option key={p} value={p}>{p}</option>)}</select><select value={dateFilter} onChange={(e)=>setDateFilter(e.target.value)}><option value="all">Any date</option><option value="month">This month</option><option value="30">Last 30 days</option></select>{(search||categoryFilter!=="all"||paymentFilter!=="all"||dateFilter!=="all")&&<button className="filter-clear" onClick={()=>{setSearch("");setCategoryFilter("all");setPaymentFilter("all");setDateFilter("all");}}>Clear</button>}</div>
+        <div className="section-head"><div><h2>Receipts</h2><span>{filtered.length} records</span></div><div className="receipt-toolbar"><div className="search"><Search size={17}/><input placeholder="Search receipts…" value={search} onChange={(e)=>setSearch(e.target.value)}/></div><button className="export-button" onClick={()=>exportSelectedOrFiltered("csv")} disabled={!filtered.length}>Export CSV{selectedRecords.length ? ` (${selectedRecords.length})` : ""}</button><button className="export-button" onClick={()=>exportSelectedOrFiltered("json")} disabled={!filtered.length}>Export JSON{selectedRecords.length ? ` (${selectedRecords.length})` : ""}</button><button className="export-button" onClick={()=>exportPdf(selectedRecords.length ? selectedRecords : filtered)} disabled={!filtered.length}>Export PDF{selectedRecords.length ? ` (${selectedRecords.length})` : ""}</button></div></div><div className="receipt-filters"><select value={categoryFilter} onChange={(e)=>setCategoryFilter(e.target.value)}><option value="all">All categories</option>{filterCategories.map(c=><option key={c} value={c}>{c}</option>)}</select><select value={paymentFilter} onChange={(e)=>setPaymentFilter(e.target.value)}><option value="all">All payment methods</option>{paymentMethods.map(p=><option key={p} value={p}>{p}</option>)}</select><select value={dateFilter} onChange={(e)=>setDateFilter(e.target.value)}><option value="all">Any date</option><option value="month">This month</option><option value="30">Last 30 days</option></select>{(search||categoryFilter!=="all"||paymentFilter!=="all"||dateFilter!=="all")&&<button className="filter-clear" onClick={()=>{setSearch("");setCategoryFilter("all");setPaymentFilter("all");setDateFilter("all");}}>Clear</button>}</div>
         <div className="receipt-list">
-          {filtered.length === 0 ? <div className="empty"><FileText size={32}/><strong>No receipts yet</strong><span>Upload your first receipt to start building your dashboard.</span></div> : filtered.map(r => <button className="receipt-row" key={r.id} onClick={()=>setSelected(r)}>
-            <div className="receipt-icon"><Receipt size={19}/></div><div className="receipt-main"><strong>{r.merchant.name}</strong><span>Shopping: {displayDate(r.receipt.shopping_date)} · Uploaded: {displayDateTime(r.uploaded_at)}</span><small>{r.metadata.notes}</small></div><strong className="amount">{money(r.amounts.total, r.receipt.currency)}</strong>
-          </button>)}
+          {filtered.length === 0 ? <div className="empty"><FileText size={32}/><strong>No receipts yet</strong><span>Upload your first receipt to start building your dashboard.</span></div> : <>{<div className="bulk-bar"><label><input type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible}/><span>Select all visible</span></label>{selectedRecords.length > 0 && <><span className="selected-count">{selectedRecords.length} selected</span><button className="bulk-delete" onClick={async()=>{if(!confirm(`Delete ${selectedRecords.length} selected receipt(s) permanently?`))return;for(const id of [...selectedIds]){await remove(id);}setSelectedIds([]);}}>Delete selected</button></>}</div>}{filtered.map(r => <div className="receipt-row-wrap" key={r.id}><label className="receipt-select"><input type="checkbox" checked={selectedIds.includes(r.id)} onChange={()=>toggleSelected(r.id)} onClick={e=>e.stopPropagation()}/></label><button className="receipt-row" onClick={()=>setSelected(r)}><div className="receipt-icon"><Receipt size={19}/></div><div className="receipt-main"><strong>{r.merchant.name}</strong><span>Shopping: {displayDate(r.receipt.shopping_date)} · Uploaded: {displayDateTime(r.uploaded_at)}</span><small>{r.metadata.notes}</small></div><strong className="amount">{money(r.amounts.total, r.receipt.currency)}</strong></button></div>)}</> }
         </div>
       </section>
       <Footer />
