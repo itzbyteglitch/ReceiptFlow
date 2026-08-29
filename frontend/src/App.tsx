@@ -121,7 +121,7 @@ function App() {
 
   async function remove(id: string, skipConfirm = false) {
     if (!skipConfirm && !confirm("Delete this receipt permanently?")) return;
-    const response = await fetch(`${API_URL}/api/receipts/${id}?userId=${encodeURIComponent(clientId())}`, { method: "DELETE" });
+    const response = await fetch(`${API_URL}/api/receipts/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
     if (!response.ok) {
       setMessage("Could not delete receipt.");
       return;
@@ -221,7 +221,7 @@ function App() {
 
       {message && <div className="notice"><span>{message}</span><button onClick={() => setMessage("")}><X size={16}/></button></div>}
 
-      <section className="model-control"><div><strong>AI model</strong><span>MiniMax M3 Free by default. Enter another OpenRouter model ID to override it for your uploads.</span></div><input aria-label="AI model ID" value={modelId} onChange={(e)=>{setModelId(e.target.value);localStorage.setItem("receiptflow-model",e.target.value);}} placeholder="minimax/minimax-m3:free" /></section>
+      <section className="model-control"><div className="model-control-copy"><div className="model-title"><span className="model-dot"></span><strong>AI model</strong><span className="model-default">Default: MiniMax M3 Free</span></div><span className="model-help">Use the default vision model or enter an OpenRouter model ID to override it.</span></div><div className="model-control-input"><input aria-label="AI model ID" value={modelId} onChange={(e)=>{setModelId(e.target.value);localStorage.setItem("receiptflow-model",e.target.value);}} placeholder="minimax/minimax-m3:free" /><button type="button" className="model-reset" onClick={()=>{setModelId("minimax/minimax-m3:free");localStorage.setItem("receiptflow-model","minimax/minimax-m3:free");}}>Reset</button></div></section>
 
       <section className="stats">
         <Stat icon={<Wallet/>} label="Total spending" value={money(total)} />
