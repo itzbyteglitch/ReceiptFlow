@@ -141,9 +141,9 @@ function App() {
     return textMatch && categoryMatch && paymentMatch && dateMatch;
   });
 
+  const sortedFiltered = [...filtered].sort((a,b) => sortBy === "highest" ? b.amounts.total-a.amounts.total : sortBy === "lowest" ? a.amounts.total-b.amounts.total : sortBy === "merchant" ? a.merchant.name.localeCompare(b.merchant.name) : sortBy === "oldest" ? new Date(a.receipt.shopping_date).getTime()-new Date(b.receipt.shopping_date).getTime() : new Date(b.receipt.shopping_date).getTime()-new Date(a.receipt.shopping_date).getTime());
   const visibleIds = sortedFiltered.map(r => r.id);
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.includes(id));
-  const sortedFiltered = [...filtered].sort((a,b) => sortBy === "highest" ? b.amounts.total-a.amounts.total : sortBy === "lowest" ? a.amounts.total-b.amounts.total : sortBy === "merchant" ? a.merchant.name.localeCompare(b.merchant.name) : sortBy === "oldest" ? new Date(a.receipt.shopping_date).getTime()-new Date(b.receipt.shopping_date).getTime() : new Date(b.receipt.shopping_date).getTime()-new Date(a.receipt.shopping_date).getTime());
   const selectedRecords = sortedFiltered.filter(r => selectedIds.includes(r.id));
   function toggleSelected(id: string) { setSelectedIds(current => current.includes(id) ? current.filter(x => x !== id) : [...current, id]); }
   function toggleAllVisible() { setSelectedIds(current => allVisibleSelected ? current.filter(id => !visibleIds.includes(id)) : Array.from(new Set([...current, ...visibleIds]))); }
