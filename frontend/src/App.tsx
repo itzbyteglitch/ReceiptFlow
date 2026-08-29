@@ -313,7 +313,7 @@ function Details({record,onBack,onDelete,onSave}:{record:ReceiptRecord;onBack:()
     }catch(e){alert(e instanceof Error?e.message:"Could not save changes.");}finally{setSaving(false);}
   }
   const field=(label:string,path:string)=>{const [section,key]=path.split(".");return <label className="edit-field"><span>{label}</span><input value={(form as any)[section][key]} onChange={e=>set(path,e.target.value)}/></label>;};
-  return <main className="app-shell"><header className="topbar"><button className="back" onClick={onBack}><ArrowLeft size={18}/> Dashboard</button><div className="detail-actions"><button className="secondary-button" onClick={()=>setEditing(true)}>Edit details</button><button className="danger" onClick={onDelete}><Trash2 size={17}/> Delete receipt</button></div></header>
+  return <main className="app-shell"><SourceLink /><header className="topbar"><button className="back" onClick={onBack}><ArrowLeft size={18}/> Dashboard</button><div className="detail-actions"><button className="secondary-button" onClick={()=>setEditing(true)}>Edit details</button><button className="danger" onClick={onDelete}><Trash2 size={17}/> Delete receipt</button></div></header>
     <section className="detail-hero"><p className="eyebrow">{record.receipt.type.replaceAll("_"," ").toUpperCase()}</p><h1>{record.merchant.name}</h1><p>{record.metadata.notes}</p><div className="detail-meta"><span><CalendarDays size={16}/> Shopping: {displayDate(record.receipt.shopping_date)}</span><span><Upload size={16}/> Uploaded: {displayDateTime(record.uploaded_at)}</span></div></section>
     {record.metadata.warnings.length>0&&<div className="warning"><AlertTriangle size={18}/><div><strong>Extraction warnings</strong>{record.metadata.warnings.map(w=><span key={w}>{w}</span>)}</div></div>}
     <section className="grid-two"><Panel title="Receipt information"><Info label="Invoice / receipt no." value={record.receipt.invoice_number}/><Info label="Customer" value={record.customer.name}/><Info label="Location" value={[record.merchant.city,record.merchant.state].filter(x=>x!=="unspecified").join(", ")||"unspecified"}/><Info label="Payment" value={record.payment.method}/><Info label="Status" value={record.payment.status}/><Info label="Confidence" value={Math.round(record.metadata.confidence*100)+"%"}/></Panel>
@@ -328,6 +328,12 @@ function Details({record,onBack,onDelete,onSave}:{record:ReceiptRecord;onBack:()
     <p className="privacy-note"><CheckCircle2 size={16}/> ReceiptFlow stores extracted receipt data only; original images are not displayed or stored.</p>
     <Footer />
   </main>
+}
+
+function SourceLink() {
+  return <a className="source-link" href="https://github.com/itzbyteglitch/ReceiptFlow" target="_blank" rel="noreferrer" aria-label="View ReceiptFlow source on GitHub">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22.645.303.54 1.523.105 3.176.76-.84 1.23-1.91 1.23-3.22 0-4.61-2.805-5.625-5.475-5.92.42-.36.81-1.096.81-2.22 0-1.606-.015-2.896-.015-3.286 0-.315-.21-.69-.825-.57C20.565 22.092 24 17.592 24 12.297 24 5.67 18.627.297 12 .297Z"/></svg><span>View source</span>
+  </a>;
 }
 
 function Footer() {
@@ -360,7 +366,7 @@ function Login({apiUrl,onLogin}:{apiUrl:string;onLogin:(token:string,label:strin
     } finally { setLoading(false); }
   }
 
-  return <main className="app-shell login-shell">
+  return <main className="app-shell login-shell"><SourceLink />
     <section className="login-card">
       <div className="brand"><div className="brand-mark"><Receipt size={20}/></div><div><strong>ReceiptFlow</strong><span>Receipt intelligence</span></div></div>
       <div className="login-copy"><p className="eyebrow">PRIVATE ACCESS</p><h1>Sign in to ReceiptFlow.</h1><p>Enter your access code to access your private receipt dashboard.</p></div>
