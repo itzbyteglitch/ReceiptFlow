@@ -118,6 +118,68 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+function normalizeAiReceipt(value: any): any {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const merchant = value.merchant || {};
+  const inv = value.invoice || {};
+  const student = inv.student || value.customer || {};
+  const taxes = value.taxes || {};
+  const items = Array.isArray(value.items) ? value.items : Array.isArray(value.line_items) ? value.line_items : [];
+
+  return {
+    merchant: {
+      name: merchant.name ?? "unspecified",
+      address: merchant.address ?? "unspecified",
+      city: merchant.city ?? "unspecified",
+      state: merchant.state ?? "unspecified",
+      country: merchant.country ?? "unspecified",
+      phone: merchant.phone ?? "unspecified",
+      gstin: merchant.gstin ?? merchant.gst_no ?? merchant.gst_no ?? "unspecified"
+    },
+    receipt: {
+      type: value.receipt?.type ?? value.receipt_type ?? "unspecified",
+      invoice_number: value.receipt?.invoice_number ?? inv.number ?? "unspecified",
+      shopping_date: value.receipt?.shopping_date ?? inv.date ?? "unspecified",
+      shopping_time: value.receipt?.shopping_time ?? "unspecified",
+      currency: value.receipt?.currency ?? "INR"
+    },
+    customer: {
+      name: value.customer?.name ?? student.name ?? value.receipt_owner ?? "unspecified",
+      id: value.customer?.id ?? student.code ?? student.uin ?? "unspecified",
+      address: value.customer?.address ?? "unspecified"
+    },
+    amounts: {
+      subtotal: Number(value.amounts?.subtotal ?? value.subtotal ?? 0),
+      discount: Number(value.amounts?.discount ?? value.discount ?? 0),
+      tax: Number(value.amounts?.tax ?? taxes.total_tax ?? 0),
+      round_off: Number(value.amounts?.round_off ?? 0),
+      total: Number(value.amounts?.total ?? value.total_price ?? 0),
+      paid: Number(value.amounts?.paid ?? value.amount_paid ?? 0),
+      pending: Number(value.amounts?.pending ?? value.amount_pending ?? 0)
+    },
+    payment: {
+      method: value.payment?.method ?? value.payment?.mode ?? "unspecified",
+      status: value.payment?.status ?? (Number(value.amount_pending ?? 0) === 0 ? "paid" : "pending")
+    },
+    items: items.map((item: any) => ({
+      name: item.name ?? item.particulars ?? "unspecified",
+      description: item.description ?? "unspecified",
+      category: item.category ?? "Other",
+      quantity: Number(item.quantity ?? 0),
+      unit: item.unit ?? "unspecified",
+      unit_price: Number(item.unit_price ?? item.rate ?? 0),
+      total_price: Number(item.total_price ?? item.amount ?? 0)
+    })),
+    metadata: {
+      receipt_owner: value.metadata?.receipt_owner ?? value.receipt_owner ?? "unspecified",
+      tags: Array.isArray(value.metadata?.tags) ? value.metadata.tags : [],
+      notes: value.metadata?.notes ?? value.notes ?? "unspecified",
+      confidence: Number(value.metadata?.confidence ?? 0),
+      warnings: Array.isArray(value.metadata?.warnings) ? value.metadata.warnings : []
+    }
+  };
+}
+
 function extractJson(text: string): unknown {
   // Free vision models may prepend safety/status text or markdown around JSON.
   // Extract the JSON object rather than assuming the entire response is JSON.
@@ -180,7 +242,7 @@ async function processReceipt(file: File, env: Env, modelOverride?: string): Pro
   if (typeof text !== "string" || !text.trim()) throw new Error("AI returned no structured content.");
   let extracted: unknown;
   try {
-    extracted = extractJson(text);
+    extracted = normalizeAiReceipt(extractJson(text));
   } catch (error) {
     // During development, surface the complete model response so we can inspect
     // what the free vision model actually returned instead of hiding it.
