@@ -78,6 +78,7 @@ function App() {
   const [showUploadOptions, setShowUploadOptions] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<"newest"|"oldest"|"highest"|"lowest"|"merchant">("newest");
+  const [modelId, setModelId] = useState(() => localStorage.getItem("receiptflow-model") || "minimax/minimax-m3:free");
 
   function logout() {
     localStorage.removeItem("receiptflow-session");
@@ -104,6 +105,7 @@ function App() {
       const form = new FormData();
       form.append("file", file);
       form.append("userId", clientId());
+      if (modelId.trim()) form.append("model", modelId.trim());
       const response = await fetch(`${API_URL}/api/receipts`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: form });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Processing failed");
@@ -218,6 +220,8 @@ function App() {
       </section>
 
       {message && <div className="notice"><span>{message}</span><button onClick={() => setMessage("")}><X size={16}/></button></div>}
+
+      <section className="model-control"><div><strong>AI model</strong><span>MiniMax M3 Free by default. Enter another OpenRouter model ID to override it for your uploads.</span></div><input aria-label="AI model ID" value={modelId} onChange={(e)=>{setModelId(e.target.value);localStorage.setItem("receiptflow-model",e.target.value);}} placeholder="minimax/minimax-m3:free" /></section>
 
       <section className="stats">
         <Stat icon={<Wallet/>} label="Total spending" value={money(total)} />
