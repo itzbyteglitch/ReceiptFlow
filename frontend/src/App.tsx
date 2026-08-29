@@ -132,14 +132,27 @@ function App() {
     setMessage("Receipt deleted.");
   }
 
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  const currentMonth = new Date();
+  const isThisMonth = (dateValue: string) => {
+    if (!dateValue) return false;
+    const parsed = new Date(dateValue);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.getFullYear() === currentMonth.getFullYear() && parsed.getMonth() === currentMonth.getMonth();
+    }
+    const match = dateValue.trim().match(/^(\d{1,2})[-\s]([A-Za-z]+)[-\s](\d{4})$/);
+    if (match) {
+      const month = new Date("1 " + match[2] + " " + match[3]);
+      return !Number.isNaN(month.getTime()) && month.getFullYear() === currentMonth.getFullYear() && month.getMonth() === currentMonth.getMonth();
+    }
+    return false;
+  };
   const filterCategories = Array.from(new Set(records.flatMap((r) => r.items.map((i) => i.category)))).filter(Boolean).sort();
   const paymentMethods = Array.from(new Set(records.map((r) => r.payment.method))).filter(Boolean).sort();
   const filtered = records.filter((r) => {
     const textMatch = [r.merchant.name, r.receipt.invoice_number, r.metadata.notes, ...r.items.map((i) => i.name)].join(" ").toLowerCase().includes(search.toLowerCase());
     const categoryMatch = categoryFilter === "all" || r.items.some((i) => i.category === categoryFilter);
     const paymentMatch = paymentFilter === "all" || r.payment.method === paymentFilter;
-    const dateMatch = dateFilter === "all" || (dateFilter === "month" ? r.receipt.shopping_date.startsWith(currentMonth) : new Date(r.receipt.shopping_date) >= new Date(Date.now() - 30 * 86400000));
+    const dateMatch = dateFilter === "all" || (dateFilter === "month" ? isThisMonth(r.receipt.shopping_date) : new Date(r.receipt.shopping_date) >= new Date(Date.now() - 30 * 86400000));
     return textMatch && categoryMatch && paymentMatch && dateMatch;
   });
 
@@ -196,7 +209,7 @@ function App() {
   }
 
   const total = records.reduce((sum, r) => sum + r.amounts.total, 0);
-  const monthTotal = records.filter((r) => r.receipt.shopping_date.startsWith(currentMonth)).reduce((sum, r) => sum + r.amounts.total, 0);
+  const monthTotal = records.filter((r) => isThisMonth(r.receipt.shopping_date)).reduce((sum, r) => sum + r.amounts.total, 0);
 
   const categories = Object.entries(records.flatMap((r) => r.items).reduce<Record<string, number>>((a, i) => {
     a[i.category] = (a[i.category] || 0) + i.total_price; return a;
