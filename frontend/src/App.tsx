@@ -135,6 +135,35 @@ function App() {
   const currentMonth = new Date();
   const isThisMonth = (dateValue: string) => {
     if (!dateValue) return false;
+    const raw = String(dateValue).trim();
+    const normalized = raw.replace(/[,]/g, " ").replace(/\\s+/g, " ").trim();
+    const candidates = [
+      normalized,
+      normalized.replace(/\\b(\\d{1,2})[-.](\\d{1,2})[-.](\\d{2,4})\\b/, "$1/$2/$3"),
+      normalized.replace(/\\b(\\d{4})[-.](\\d{1,2})[-.](\\d{1,2})\\b/, "$1/$2/$3"),
+      normalized.replace(/\\b(\\d{1,2})[-. ]([A-Za-z]{3,9})[-. ](\\d{2,4})\\b/, "$1 $2 $3"),
+      normalized.replace(/\\b([A-Za-z]{3,9})[-. ](\\d{1,2})[-. ,]+(\\d{2,4})\\b/, "$2 $1 $3")
+    ];
+    for (const candidate of candidates) {
+      const parsed = new Date(candidate);
+      if (!Number.isNaN(parsed.getTime()) &&
+          parsed.getFullYear() === currentMonth.getFullYear() &&
+          parsed.getMonth() === currentMonth.getMonth()) return true;
+    }
+    const monthNames: Record<string, number> = {
+      january:0,february:1,march:2,april:3,may:4,june:5,july:6,august:7,september:8,october:9,november:10,december:11,
+      jan:0,feb:1,mar:2,apr:3,jun:5,jul:6,aug:7,sep:8,sept:8,oct:9,nov:10,dec:11
+    };
+    const monthPattern = normalized.match(/\\b([A-Za-z]{3,9})\\b/);
+    const yearPattern = normalized.match(/\\b(\\d{4})\\b/);
+    if (monthPattern && yearPattern && monthNames[monthPattern[1].toLowerCase()] !== undefined) {
+      return Number(yearPattern[1]) === currentMonth.getFullYear() &&
+        monthNames[monthPattern[1].toLowerCase()] === currentMonth.getMonth();
+    }
+    return false;
+  };
+  const isThisMonth = (dateValue: string) => {
+    if (!dateValue) return false;
     const parsed = new Date(dateValue);
     if (!Number.isNaN(parsed.getTime())) {
       return parsed.getFullYear() === currentMonth.getFullYear() && parsed.getMonth() === currentMonth.getMonth();
