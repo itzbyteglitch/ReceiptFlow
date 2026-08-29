@@ -3,7 +3,7 @@ main = "src/index.ts"
 compatibility_date = "2026-08-28"
 
 [vars]
-OPENROUTER_MODEL = "dots-studio/dots-3-note-preview:free"
+OPENROUTER_MODEL = "openrouter/auto"
 
 [[d1_databases]]
 binding = "DB"
