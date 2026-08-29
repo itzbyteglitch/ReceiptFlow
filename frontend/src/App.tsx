@@ -290,7 +290,7 @@ function Details({record,onBack,onDelete,onSave}:{record:ReceiptRecord;onBack:()
 
 function Footer() {
   return <footer className="site-footer">
-    <span>ReceiptFlow © 2026</span>
+    <a href="https://github.com/itzbyteglitch/ReceiptFlow" target="_blank" rel="noreferrer">ReceiptFlow</a><span> © 2026</span>
     <span className="footer-separator">|</span>
     <a href="https://github.com/itzbyteglitch" target="_blank" rel="noreferrer">Made by ItzByteGlitch</a>
   </footer>;
