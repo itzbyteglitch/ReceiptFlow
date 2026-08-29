@@ -34,6 +34,19 @@ Read the provided receipt image carefully, including printed text, tables, total
 
 Return ONLY valid JSON matching the supplied schema.
 
+EXACT OUTPUT FIELDS:
+{
+  "merchant": {"name":"string","address":"string","city":"string","state":"string","country":"string","phone":"string","gstin":"string"},
+  "receipt": {"type":"string","invoice_number":"string","shopping_date":"string","shopping_time":"string","currency":"string"},
+  "customer": {"name":"string","id":"string","address":"string"},
+  "amounts": {"subtotal":"number","discount":"number","tax":"number","round_off":"number","total":"number","paid":"number","pending":"number"},
+  "payment": {"method":"string","status":"string"},
+  "items": [{"name":"string","description":"string","category":"string","quantity":"number","unit":"string","unit_price":"number","total_price":"number"}],
+  "metadata": {"receipt_owner":"string","tags":["string"],"notes":"string","confidence":"number","warnings":["string"]}
+}
+
+Do not rename, omit, nest, or add fields. Classify every item independently and use "Other" when no sensible category applies.
+
 Rules:
 1. Never fabricate information.
 2. If a field is not present, not readable, or cannot be determined from the receipt, return the exact string "unspecified" for string fields.
