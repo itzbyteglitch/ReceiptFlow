@@ -163,31 +163,12 @@ async function processReceipt(file: File, env: Env, modelOverride?: string): Pro
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: [
-          { type: "text", text: "Extract this receipt into the ReceiptFlow schema." },
+          { type: "text", text: "Extract this receipt into the ReceiptFlow schema. Return ONLY one complete JSON object. Do not use Markdown fences, do not write ```json, and do not add any text before or after the JSON." },
           { type: "image_url", image_url: { url: imageUrl } }
         ]}
       ],
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: "receiptflow_receipt",
-          strict: true,
-          schema: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              merchant:{type:"object",additionalProperties:false,properties:{name:{type:"string"},address:{type:"string"},city:{type:"string"},state:{type:"string"},country:{type:"string"},phone:{type:"string"},gstin:{type:"string"}},required:["name","address","city","state","country","phone","gstin"]},
-              receipt:{type:"object",additionalProperties:false,properties:{type:{type:"string"},invoice_number:{type:"string"},shopping_date:{type:"string"},shopping_time:{type:"string"},currency:{type:"string"}},required:["type","invoice_number","shopping_date","shopping_time","currency"]},
-              customer:{type:"object",additionalProperties:false,properties:{name:{type:"string"},id:{type:"string"},address:{type:"string"}},required:["name","id","address"]},
-              amounts:{type:"object",additionalProperties:false,properties:{subtotal:{type:"number"},discount:{type:"number"},tax:{type:"number"},round_off:{type:"number"},total:{type:"number"},paid:{type:"number"},pending:{type:"number"}},required:["subtotal","discount","tax","round_off","total","paid","pending"]},
-              payment:{type:"object",additionalProperties:false,properties:{method:{type:"string"},status:{type:"string"}},required:["method","status"]},
-              items:{type:"array",items:{type:"object",additionalProperties:false,properties:{name:{type:"string"},description:{type:"string"},category:{type:"string"},quantity:{type:"number"},unit:{type:"string"},unit_price:{type:"number"},total_price:{type:"number"}},required:["name","description","category","quantity","unit","unit_price","total_price"]}},
-              metadata:{type:"object",additionalProperties:false,properties:{receipt_owner:{type:"string"},tags:{type:"array",items:{type:"string"}},notes:{type:"string"},confidence:{type:"number"},warnings:{type:"array",items:{type:"string"}}},required:["receipt_owner","tags","notes","confidence","warnings"]}
-            },
-            required:["merchant","receipt","customer","amounts","payment","items","metadata"]
-          }
-        }
-      }
+      max_tokens: 12000,
+      response_format: { type: "json_object" },
     })
   });
 
