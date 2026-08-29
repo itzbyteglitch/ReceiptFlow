@@ -3,7 +3,7 @@ main = "src/index.ts"
 compatibility_date = "2026-08-28"
 
 [vars]
-OPENROUTER_MODEL = "minimax/minimax-m3:free"
+OPENROUTER_MODEL = "openrouter/free"
 
 [[d1_databases]]
 binding = "DB"
