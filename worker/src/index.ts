@@ -145,7 +145,7 @@ async function processReceipt(file: File, env: Env): Promise<Receipt> {
 
   const base64 = bytesToBase64(bytes);
   const imageUrl = `data:${file.type};base64,${base64}`;
-  const model = env.OPENROUTER_MODEL || "openrouter/auto";
+  const model = env.OPENROUTER_MODEL || "minimax/minimax-m3:free";
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
