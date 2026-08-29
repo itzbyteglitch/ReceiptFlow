@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/receiptflow-banner.svg" alt="ReceiptFlow banner" width="100%"></p>
+
 # ReceiptFlow
 
 [![Cloudflare Pages](https://img.shields.io/badge/Frontend-Cloudflare%20Pages-f38020?style=for-the-badge&logo=cloudflare&logoColor=white)](https://pages.cloudflare.com/)
