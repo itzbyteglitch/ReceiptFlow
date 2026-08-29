@@ -209,7 +209,7 @@ function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div className="brand"><div className="brand-mark" aria-hidden="true"><Receipt size={20}/></div><div><strong>ReceiptFlow</strong><span>Receipt intelligence</span></div></div>
+        <div className="brand"><div className="brand-mark"><img src="/favicon.svg" alt="" /></div><div><strong>ReceiptFlow</strong><span>Receipt intelligence</span></div></div>
       </header>
 
       <section className="hero">
