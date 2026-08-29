@@ -138,14 +138,14 @@ function extractJson(text: string): unknown {
   }
 }
 
-async function processReceipt(file: File, env: Env): Promise<Receipt> {
+async function processReceipt(file: File, env: Env, modelOverride?: string): Promise<Receipt> {
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (bytes.byteLength > 15 * 1024 * 1024) throw new Error("Receipt image must be 15 MB or smaller.");
   if (!file.type.startsWith("image/")) throw new Error("Only image receipts are supported.");
 
   const base64 = bytesToBase64(bytes);
   const imageUrl = `data:${file.type};base64,${base64}`;
-  const model = env.OPENROUTER_MODEL || "openrouter/free";
+  const model = (modelOverride?.trim() || env.OPENROUTER_MODEL || "minimax/minimax-m3:free").slice(0, 200);
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
@@ -284,8 +284,10 @@ export default {
         const file = form.get("file");
         if (!(file instanceof File)) return jsonResponse({ error: "Image file is required" }, 400);
 
+        const modelOverride = String(form.get("model") || "").trim();
+        if (modelOverride.length > 200) return jsonResponse({ error: "Model ID is too long." }, 400);
         const uploadedAt = new Date().toISOString();
-        const data = await processReceipt(file, env);
+        const data = await processReceipt(file, env, modelOverride);
         const record = await saveReceipt(env, userId, data, uploadedAt);
         return jsonResponse(record, 201);
       }
